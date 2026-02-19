@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify,session,redirect,url_
 from aiBotBackend import chatbot;
 from datetime import date, timedelta 
 import psycopg2.extras
+from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2 import errors
 from dotenv import load_dotenv
@@ -79,9 +80,6 @@ def login():
     # Good practice: explicitly select the columns you need instead of '*'
     cur.execute("SELECT id, username, name FROM users WHERE username = %s AND userpassword = %s", (username, userpass))
     result = cur.fetchone()
-    # print(username)
-    # print(userpass)
-    # print(result)
     if result:
         # This now works perfectly because 'result' is a dictionary
         session['user_id'] = result['id'] 
@@ -94,7 +92,7 @@ def login():
     else:
         cur.close()
         con.close()
-        return jsonify({"message": "Invalid Credentials"}), 401
+        return jsonify({"error": "Invalid Credentials"}), 401
 
 @app.route("/register_page")
 def register_page():
@@ -108,7 +106,7 @@ def register():
     userpass = data.get("userpass")
     useremail = data.get("email")
     name = data.get("name")
-
+    # hashed_password = generate_password_hash(userpass)
     try:
         con = getDBConnection()
     # 1. Use RealDictCursor so you get a Dictionary {'id': 1}, not a Tuple (1,)
@@ -313,9 +311,14 @@ def get_questions_api(concept_id):
         WHERE q.concept_id = %s
     """
     cur.execute(query, (user_id, concept_id))
+
     questions = cur.fetchall()
-    print(questions)
-    print("Hello")
+    difficulty_map = {"Easy": 1, "Medium": 2, "Hard": 3}
+    questions.sort(key=lambda x: difficulty_map.get(x['difficulty'], 4))
+    # for dt in questions:
+    #     (dict(dt))
+    #     print()
+    # print("Hello")
     cur.close()
     con.close()
     return jsonify(questions)
@@ -491,7 +494,6 @@ def api_review():
 
     try:
         # 3. Fetch Current Stats
-        # We need the OLD values to calculate the NEW ones
         cur.execute("""
             SELECT "interval", ease_factor, repetitions 
             FROM user_progress 

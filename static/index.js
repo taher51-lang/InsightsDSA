@@ -21,6 +21,7 @@ const handleLogin = async () => {
             window.location.href = "/dashboard";
         }, 500);
     } else {
+        alert(data.error)
         // document.getElementById("msg").innerText = data["message"];
         // document.getElementById("msg").style.color = "red";
     }
