@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Practice Problems</title>
+    <title>Practice Problems - InsightsDSA</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/question_style.css">
@@ -16,7 +16,7 @@
             <div class="d-flex justify-content-between align-items-center mb-5">
                 <div>
                     <a href="/dashboard" class="text-decoration-none text-muted small mb-2 d-block">
-                        <i class="bi bi-chevron-left"></i> Back to Dashboard
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
                     </a>
                     <h2 id="concept-title" class="fw-bold text-dark">
                         Problem Set
@@ -28,13 +28,14 @@
                     </span>
                 </div>
             </div>
-            <div class="table-responsive">
-                <table class="table align-middle table-hover">
+            
+            <div class="table-responsive bg-white rounded-4 shadow-sm border border-light">
+                <table class="table align-middle table-hover mb-0">
                     <tbody id="questions-table-body">
                         <tr>
                             <td colspan="4" class="text-center py-5 text-muted">
                                 <div class="spinner-border text-primary" role="status"></div>
-                                <div class="mt-2 small">Loading problems...</div>
+                                <div class="mt-3 small fw-medium">Loading your neural pathway...</div>
                             </td>
                         </tr>
                     </tbody>
@@ -43,62 +44,11 @@
         </div>
     </div>
 </div>
-<div class="modal fade" id="workstationModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-fullscreen"> 
-        <div class="modal-content">
-            
-            <div class="modal-header bg-dark text-white border-0">
-                <div class="d-flex align-items-center">
-                    <span class="badge bg-primary me-3">Problem View</span>
-                    <h5 class="modal-title mb-0" id="ws-title">Loading...</h5>
-                </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
 
-            <div class="modal-body p-0">
-                <div class="container-fluid h-100">
-                    <div class="row h-100">
-                        
-                        <div class="col-lg-7 h-100 overflow-auto p-5 border-end bg-light">
-                            <h6 class="text-uppercase text-muted fw-bold small mb-4 tracking-wide">Problem Statement</h6>
-                            <div id="ws-description" class="fs-5 text-dark" style="white-space: pre-wrap; line-height: 1.8; font-family: system-ui, -apple-system, sans-serif;">
-                                </div>
-                            
-                            <div class="mt-5 pt-4 border-top">
-                                <button id="ws-mark-done-btn" class="btn btn-lg btn-success w-100 rounded-3 py-3 fw-bold shadow-sm" onclick="updateWorkstationButton()">
-                                    <i class="bi bi-check-circle-fill me-2"></i> Mark Problem as Solved
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-5 h-100 d-flex flex-column bg-white p-0 shadow-start">
-                            <div class="p-3 border-bottom bg-white d-flex align-items-center">
-                                <i class="bi bi-robot text-primary fs-4 me-2"></i>
-                                <h6 class="fw-bold mb-0">AI Tutor</h6>
-                            </div>
-                            
-                            <div id="ws-chat-box" class="flex-grow-1 p-4 overflow-auto" style="background: #f8f9fa;">
-                                </div>
-
-                            <div class="p-3 border-top bg-white">
-                                <div class="input-group input-group-lg">
-                                    <input type="text" id="ws-user-input" class="form-control border-0 bg-light rounded-start-pill ps-4" placeholder="Ask for a hint...">
-                                    <button class="btn btn-primary rounded-end-pill px-4" onclick="askAI()">
-                                        <i class="bi bi-send-fill"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <script>
     // const CONCEPT_ID = {{ concept_id }};
+    
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

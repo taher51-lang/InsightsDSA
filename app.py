@@ -839,6 +839,51 @@ def api_journey():
     finally:
         if cur: cur.close()
         if con: con.close()
+@app.route("/question/<int:q_id>")
+def question_page(q_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect("/login")
+    
+    # We don't need to fetch data here because our 
+    # workspace.js fetches it via the API on load!
+    return render_template("question.html")
+@app.route("/api/get_similar/<int:q_id>")
+def get_similar(q_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+        
+    con = getDBConnection()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    try:
+        # 1. Get concept_id of current question 
+        # 2. Find 3 other questions in that concept NOT solved by this user
+        # 3. Exclude the current question itself
+        query = """
+            SELECT id, title, difficulty 
+            FROM questions 
+            WHERE concept_id = (SELECT concept_id FROM questions WHERE id = %s)
+            AND id != %s
+            AND id NOT IN (
+                SELECT question_id FROM user_progress 
+                WHERE user_id = %s AND is_solved = TRUE
+            )
+            ORDER BY RANDOM() 
+            LIMIT 3
+        """
+        cur.execute(query, (q_id, q_id, user_id))
+        similar_questions = cur.fetchall()
+        
+        return jsonify(similar_questions)
+        
+    except Exception as e:
+        print(f"Error fetching similar: {e}")
+        return jsonify({"error": "Could not fetch recommendations"}), 500
+    finally:
+        cur.close()
+        con.close()
 if __name__ == "__main__":
     app.secret_key="THERRANGBHRUCH"
     app.run(debug=True)
