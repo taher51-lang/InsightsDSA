@@ -28,5 +28,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
 // Helper for Roadmap
 function openRoadmap(){
-    window.location.href = "/roadmap";
+    window.location.href = "/journey";
 }
+document.addEventListener("DOMContentLoaded", function() {
+    // Initialize all tooltips on the page
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});

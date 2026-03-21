@@ -1,5 +1,5 @@
 flask
-psycopg-2
+psycopg2-binary
 
 dotenv
 # Core LangChain

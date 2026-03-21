@@ -1,0 +1,169 @@
+/* --- FULL SCREEN DSA Tech Tree Canvas --- */
+.tech-tree-container {
+    background-color: #0d1117; 
+    border-radius: 1rem;
+    padding: 3rem 4rem; /* More breathing room */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+    overflow-x: auto; /* Just in case they are on a tiny laptop */
+    border: 1px solid #30363d;
+}
+
+/* Blueprint Grid Background */
+.tech-tree-container::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-image: linear-gradient(#30363d 1px, transparent 1px), linear-gradient(90deg, #30363d 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.15;
+    z-index: 0;
+}
+
+.tree-tier {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3rem; /* Spread out the nodes vertically */
+    z-index: 1;
+    width: 22%; 
+    position: relative;
+}
+
+/* The Skill Nodes */
+.tree-node {
+    background: rgba(22, 27, 34, 0.9);
+    border: 1px solid #30363d;
+    border-radius: 0.75rem;
+    padding: 1.25rem; /* Larger hit area */
+    color: #c9d1d9;
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* Horizontal Connecting Lines */
+.tree-node::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -60%; /* Reaches the next tier */
+    width: 60%;
+    height: 3px;
+    background-color: #30363d;
+    z-index: -1;
+    transition: background-color 0.4s ease;
+}
+.tree-tier:last-child .tree-node::after {
+    display: none; 
+}
+
+/* States */
+.node-mastered { border-left: 5px solid #2ea043; }
+.node-mastered:hover { box-shadow: 0 0 20px rgba(46, 160, 67, 0.3); transform: translateY(-4px); }
+.node-mastered::after { background-color: rgba(46, 160, 67, 0.6); }
+
+.node-active { border-left: 5px solid #58a6ff; }
+.node-active:hover { box-shadow: 0 0 20px rgba(88, 166, 255, 0.4); transform: translateY(-4px); }
+.node-active::after { background-color: rgba(88, 166, 255, 0.6); }
+
+.node-locked { opacity: 0.5; border-left: 5px solid #484f58; cursor: not-allowed; }
+/* The Dark Grid Background */
+.network-canvas {
+    background-color: #050505;
+    background-image: 
+        radial-gradient(circle at center, rgba(30, 30, 40, 0.8) 0%, transparent 100%),
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 100% 100%, 30px 30px, 30px 30px;
+}
+
+/* The Floating Nodes */
+/* The Floating Bucket Nodes */
+.skill-node {
+    position: absolute;
+    transform: translate(-50%, -50%); 
+    width: 120px; /* Slightly larger for the "bucket" look */
+    height: 120px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    z-index: 2;
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 2px solid #333; /* Dark rim for the bucket */
+    
+    /* This creates the depth of an "empty bucket" */
+    background: #050505;
+    box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.05);
+    
+    overflow: hidden; /* CRITICAL: Crops the liquid layer into a circle */
+}
+
+/* Ensure the text is readable over the liquid */
+.node-content {
+    mix-blend-mode: hard-light; /* Makes text pop over liquid */
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+}
+
+.skill-node span { font-size: 0.75rem; line-height: 1.1; margin-bottom: 2px; }
+.skill-node small { font-size: 0.65rem; opacity: 0.8; }
+
+.skill-node:hover { transform: translate(-50%, -55%); }
+
+/* The Liquid Layer */
+.node-liquid {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    transition: height 1s ease-out, background-color 0.5s ease; /* Animate the filling */
+    z-index: 1;
+    
+    /* Creates that convex "bubble of liquid" look */
+    background: linear-gradient(0deg, rgba(0,0,0,0.6) 0%, rgba(255,255,255,0.05) 100%);
+    border-top-left-radius: 20px; /* Subtle sloshing curves */
+    border-top-right-radius: 20px;
+}
+
+/* State: Mastered (Bucket is FULL and glowing Cyan) */
+.node-mastered {
+    border-color: #00f0ff;
+    box-shadow: 0 0 25px rgba(0, 240, 255, 0.4), inset 0 0 20px rgba(0, 240, 255, 0.2);
+}
+/* The "Full" Liquid is Cyan */
+.node-mastered .node-liquid {
+    background-color: #00f0ff;
+    box-shadow: inset 0 0 15px rgba(0, 240, 255, 0.5);
+    filter: drop-shadow(0 0 5px #00f0ff);
+}
+
+/* State: Active (Bucket is partially full and glowing Violet/Red) */
+.node-active {
+    border-color: #b026ff;
+    box-shadow: 0 0 30px rgba(176, 38, 255, 0.6), inset 0 0 20px rgba(176, 38, 255, 0.2);
+}
+/* The "Active" Liquid is Violet */
+.node-active .node-liquid {
+    background-color: #b026ff;
+    box-shadow: inset 0 0 15px rgba(176, 38, 255, 0.6);
+    filter: drop-shadow(0 0 5px #b026ff);
+}
+
+/* State: Locked (Bucket is dim gray and mostly empty) */
+.node-locked {
+    border-color: #333;
+    opacity: 0.5;
+}
+/* Locked Liquid is dark gray if there's any fill at all */
+.node-locked .node-liquid {
+    background-color: #333;
+    box-shadow: inset 0 0 5px rgba(255,255,255,0.1);
+}

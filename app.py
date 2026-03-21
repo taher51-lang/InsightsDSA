@@ -7,6 +7,7 @@ import psycopg2
 from psycopg2 import errors
 from dotenv import load_dotenv
 import os
+from datetime import datetime
 load_dotenv()
 app = Flask(__name__)
 def sm2_algorithm(quality, current_interval, current_ease, repetitions):
@@ -57,7 +58,7 @@ def homePage():
 @app.route("/loginpage")
 def LoginPage():
     return render_template("regAndLogin.html")
-app.secret_key = os.getenv("FLASK_SECRET_KEY") # Use a strong key
+app.secret_key = os.getenv("FLASK_SECRET_KEY") 
 
 def getDBConnection():
     # Pulling DB details from .env for security
@@ -69,30 +70,72 @@ def getDBConnection():
     )
     return con
 
+from werkzeug.security import check_password_hash, generate_password_hash
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
     username = data.get("username")
     userpass = data.get("userpass")
-    con = getDBConnection()
-    # CHANGE 1: Added the factory so the database returns a Dictionary instead of a Tuple
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    # Good practice: explicitly select the columns you need instead of '*'
-    cur.execute("SELECT id, username, name FROM users WHERE username = %s AND userpassword = %s", (username, userpass))
-    result = cur.fetchone()
-    if result:
-        # This now works perfectly because 'result' is a dictionary
+    
+    if not username or not userpass:
+        return jsonify({"error": "Missing credentials"}), 400
+
+    # Initialize these as None so the 'finally' block doesn't crash if connection fails early
+    con = None
+    cur = None
+    
+    try:
+        con = getDBConnection()
+        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        
+        # 1. Ask for the user by username ONLY
+        cur.execute("SELECT id, username, name, userpassword FROM users WHERE username = %s", (username,))
+        result = cur.fetchone()
+        
+        # If no user is found with that username
+        if not result:
+            return jsonify({"error": "Invalid Credentials"}), 401
+            
+        current_db_password = result['userpassword']
+        is_valid = False
+        needs_upgrade = False
+        
+        # 2. THE BILINGUAL CHECK
+        if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
+            # It's a secure hash!
+            is_valid = check_password_hash(current_db_password, userpass)
+        else:
+            # It's an old plaintext demo password!
+            is_valid = (current_db_password == userpass)
+            if is_valid:
+                needs_upgrade = True # Flag them for an upgrade!
+                
+        # If the password didn't match either way, kick them out
+        if not is_valid:
+            return jsonify({"error": "Invalid Credentials"}), 401
+            
+        # 3. AUTO-UPGRADE OLD ACCOUNTS (The Self-Cleaning Magic)
+        if needs_upgrade:
+            new_hashed_password = generate_password_hash(userpass)
+            cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (new_hashed_password, result['id']))
+            con.commit()
+            print(f"Security Upgrade Complete: Hashed password for user '{username}'")
+            
+        # 4. Set Session and Log Them In
         session['user_id'] = result['id'] 
         session['username'] = result['username']    
-        # CHANGE 2: Always close connections before returning
-        cur.close()
-        con.close()
-        print(result['name'])
-        return jsonify({"message": "Login successful","name":result['name']}), 200
-    else:
-        cur.close()
-        con.close()
-        return jsonify({"error": "Invalid Credentials"}), 401
+        
+        return jsonify({"message": "Login successful", "name": result['name']}), 200
+
+    except Exception as e:
+        print("Database Error in login:", e)
+        return jsonify({"error": "Server error"}), 500
+        
+    finally:
+        # 5. Clean up tools safely
+        if cur: cur.close()
+        if con: con.close()
 
 @app.route("/register_page")
 def register_page():
@@ -100,40 +143,38 @@ def register_page():
 
 @app.route("/register", methods=["POST"])
 def register():
-    
     data = request.get_json()
     username = data.get("username")
     userpass = data.get("userpass")
     useremail = data.get("email")
     name = data.get("name")
-    # hashed_password = generate_password_hash(userpass)
+    
+    # 1. HASH THE PASSWORD! (This turns "password123" into "scrypt:32768:8:1$...")
+    hashed_password = generate_password_hash(userpass)
+    
     try:
         con = getDBConnection()
-    # 1. Use RealDictCursor so you get a Dictionary {'id': 1}, not a Tuple (1,)
         cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-    # 2. Add 'RETURNING' to get the ID back instantly
+        # 2. SAVE THE HASHED PASSWORD to the database, not the raw one
         cur.execute('''
         INSERT INTO users (name, username, email, userpassword)
         VALUES (%s, %s, %s, %s)
         RETURNING id, username; 
-        ''', (name, username, useremail, userpass))
+        ''', (name, username, useremail, hashed_password)) # <-- Swapped userpass for hashed_password
     
-    # 3. Fetch the data BEFORE committing
         new_user = cur.fetchone() 
     
-    # 4. SAVE the changes (Crucial!)
         con.commit() 
 
         if new_user:
-        # Now this works because RealDictCursor made it a dictionary
             session['user_id'] = new_user['id']
             session['username'] = new_user['username']
             return jsonify({"message": "Registration Successful!"}), 201
 
     except errors.UniqueViolation:
         # This catches BOTH duplicate Email and duplicate Username
-        con.rollback() # Cancel the failed transaction
+        con.rollback() 
         return jsonify({"error": "Username or Email already exists!"}), 409 
 
     except Exception as e:
@@ -142,16 +183,13 @@ def register():
         return jsonify({"error": "Server error. Please try again."}), 500
         
     finally:
+        # Closing the cursor and connection properly!
+        if 'cur' in locals(): cur.close()
         if con: con.close()
-    # FIX: Added the comma (username,) to make it a proper Tuple
-    
-    
 
 @app.route("/dashboard")
 def dashboard():
     user_id = session.get('user_id')
-    if not user_id:
-        return redirect(url_for('login'))
 
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -160,7 +198,6 @@ def dashboard():
     cur.execute("SELECT * FROM concepts") 
     concepts = cur.fetchall()
 
-    # --- FETCH COUNTS FIRST (To check if user is new) ---
     cur.execute("""
         SELECT 
             COUNT(*) FILTER (WHERE "interval" <= 3) as short,
@@ -175,11 +212,10 @@ def dashboard():
     medium_term = counts['medium']
     long_term = counts['long']
     
-    # Calculate Total Solved
     total_solved = short_term + medium_term + long_term
     chart_data = [short_term, medium_term, long_term]
 
-    # --- 2. RETENTION LOGIC ---
+    # 2. RETENTION LOGIC 
     if total_solved == 0:
         # NEWBIE STATE: Force retention to 0 if no data
         retention_pct = 0
@@ -233,17 +269,9 @@ def dashboard():
                            days_color=days_color,
                            concepts=concepts,
                            chart_data=chart_data,
-                           total_solved=total_solved  # <--- CRITICAL: Passing this to Jinja!
+                           total_solved=total_solved 
                            )
-    
-@app.route("/api/user_stats")
-def get_user_stats():
-    user_id = session.get('user_id')
-    
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    
-    # 1. Get Total Solved (Your existing logic is fine here)
+def getStreak(user_id,con,cur):
     cur.execute("""
         SELECT COUNT(*) as solved_count 
         FROM user_progress 
@@ -253,7 +281,6 @@ def get_user_stats():
     total_solved = total_result['solved_count'] if total_result else 0
     
     # 2. Get Streak (THE FIX)
-    # Fetch all unique dates the user was active, ordered by newest first
     cur.execute("""
         SELECT DISTINCT DATE(solved_at) as activity_date
         FROM user_progress
@@ -261,18 +288,16 @@ def get_user_stats():
         ORDER BY activity_date DESC
     """, (user_id,))
     
-    # Convert list of dicts to a Set of date objects for easy lookup
+    # Converting list of dicts to a Set of date objects for easy lookup
     rows = cur.fetchall()
     active_dates = {row['activity_date'] for row in rows}
     
-    cur.close()
-    con.close()
 
-    # --- PYTHON STREAK ALGORITHM ---
+    # PYTHON STREAK ALGORITHM 
     streak = 0
     today = date.today()
     
-    # Check if the streak is alive (Active Today OR Yesterday)
+    # Checking if the streak is alive (Active Today OR Yesterday)
     if today in active_dates:
         streak = 1
         check_date = today - timedelta(days=1) # Start checking from Yesterday
@@ -287,6 +312,18 @@ def get_user_stats():
     while check_date and check_date in active_dates:
         streak += 1
         check_date -= timedelta(days=1)
+    return total_solved,streak
+
+@app.route("/api/user_stats")
+def get_user_stats():
+    user_id = session.get('user_id')
+    con = getDBConnection()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    # 1. Get Total Solved 
+    total_solved,streak=getStreak(user_id,con,cur)
+    cur.close()
+    con.close()
 
     return jsonify({
         "total_solved": total_solved,
@@ -315,10 +352,6 @@ def get_questions_api(concept_id):
     questions = cur.fetchall()
     difficulty_map = {"Easy": 1, "Medium": 2, "Hard": 3}
     questions.sort(key=lambda x: difficulty_map.get(x['difficulty'], 4))
-    # for dt in questions:
-    #     (dict(dt))
-    #     print()
-    # print("Hello")
     cur.close()
     con.close()
     return jsonify(questions)
@@ -358,7 +391,6 @@ def toggle_solve():
         
     data = request.get_json()
     q_id = data.get("question_id")
-    
     con = getDBConnection()
     cur = con.cursor()
     
@@ -511,7 +543,6 @@ def api_review():
         new_ivl, new_ease, new_reps, new_date = sm2_algorithm(quality, curr_ivl, curr_ease, curr_reps)
 
         # 5. Update Database
-        # Note: We update "solved_at" to NOW() because they just reviewed it.
         cur.execute("""
             UPDATE user_progress 
             SET 
@@ -567,6 +598,247 @@ def roadmap():
 @app.route('/resource')
 def resource():
     return render_template('resource.html')
+@app.route('/profile')
+def profile():
+    return render_template('profile.html')
+def getUserInfo(user_id,cur):
+    # 1. Execute the query safely (the trailing comma in (user_id,) is required by psycopg2!)
+    cur.execute("""
+        SELECT id, name, username, phone_number, email 
+        FROM users 
+        WHERE id = %s
+    """, (user_id,))
+    
+    # 2. Fetch the single row
+    user_row = cur.fetchone()
+    
+    # 3. Safety check: if the user doesn't exist, return None
+    if not user_row:
+        return None
+        
+    # 4. Map the raw SQL tuple into a clean Python dictionary
+    # (Matches the exact order of your SELECT statement above)
+    user_data = {
+        "id": user_row['id'],
+        "name": user_row['name'],
+        "username": user_row['username'],
+        "phone_number": user_row['phone_number'],
+        "email": user_row['email']
+    }
+    print("hii")
+    return user_data
+def getLogs(user_id, cur):
+    # Notice we removed TO_CHAR. We just want the raw timestamp now.
+    cur.execute("""
+        SELECT 
+            q.title AS problem, 
+            c.title AS concept, 
+            q.difficulty, 
+            up.solved_at 
+        FROM user_progress up
+        JOIN questions q ON up.question_id = q.id
+        JOIN concepts c ON q.concept_id = c.id
+        WHERE up.user_id = %s 
+        ORDER BY up.solved_at DESC 
+        LIMIT 15
+    """, (user_id,))
+    
+    logs_data = cur.fetchall()
+    
+    # Get today's date to compare against
+    today = datetime.now().date()
+    
+    for log in logs_data:
+        # --- 1. Dynamic Colors ---
+        difficulty = log.get('difficulty', '').lower()
+        if difficulty == 'easy':
+            log['color'] = 'success'
+        elif difficulty == 'medium':
+            log['color'] = 'warning'
+        else:
+            log['color'] = 'danger'
+            
+        # --- 2. Relative Time Math ---
+        # Convert the SQL timestamp to a simple date
+        solved_date = log['solved_at'].date()
+        days_ago = (today - solved_date).days
+        
+        if days_ago == 0:
+            log['date'] = "Today"
+        elif days_ago == 1:
+            log['date'] = "Yesterday"
+        elif days_ago < 7:
+            log['date'] = f"{days_ago} Days Ago"
+        elif days_ago < 14:
+            log['date'] = "1 Week Ago"
+        elif days_ago < 30:
+            log['date'] = f"{days_ago // 7} Weeks Ago"
+        else:
+            # If it's older than a month, just show the actual date (e.g., "Oct 24, 2023")
+            log['date'] = solved_date.strftime("%b %d, %Y")
+            
+        # We don't need to send the raw timestamp to the frontend anymore
+        del log['solved_at']
+    print("Hello")
+    return logs_data
+@app.route('/api/profile')
+def api_profile():
+    # 1. Grab ID (fallback to 1 for testing if session expires)
+    user_id = session.get('user_id')
+    
+    # 2. Open Tools
+    con = getDBConnection()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    
+    # 3. Fetch Data
+    total_solved, streak = getStreak(user_id, con, cur)
+    userinfo = getUserInfo(user_id, cur)
+    userLogs = getLogs(user_id,cur)
+    print(userLogs)
+    print(userinfo)
+    # 4. Close Tools (Faucet first, then Main!)
+    cur.close()
+    con.close()
+    
+    # Safety Check: If user isn't in the database, don't crash
+    if not userinfo:
+        return jsonify({"error": "User not found"}), 404
+    # if not userLogs:
+    #     return jsonify({"error": "User not found"}), 404
+
+
+    # 5. Format Data
+    data = {
+        "user": {
+            "name": userinfo['name'],
+            "username": userinfo["username"],
+            "email": userinfo["email"], # <-- Real data now!
+            "streak": streak
+        },
+        "logs": userLogs
+    }
+    
+    return jsonify(data)
+
+@app.route('/api/change-password', methods=['POST'])
+def change_password():
+    # 1. Ensure the user is logged in
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized. Please log in."}), 401
+
+    data = request.get_json()
+    current_password = data.get('current_password')
+    new_password = data.get('new_password')
+
+    if not current_password or not new_password:
+        return jsonify({"error": "Both fields are required."}), 400
+
+    con = None
+    cur = None
+    
+    try:
+        con = getDBConnection()
+        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # 2. Get their current password from the DB
+        cur.execute("SELECT userpassword FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        current_db_password = user['userpassword']
+        is_valid = False
+
+        # 3. Bilingual Check (handles both hashed and old plaintext passwords)
+        if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
+            is_valid = check_password_hash(current_db_password, current_password)
+        else:
+            is_valid = (current_db_password == current_password)
+
+        if not is_valid:
+            return jsonify({"error": "Incorrect current password"}), 401
+
+        # 4. Hash the NEW password and update the database
+        hashed_new_password = generate_password_hash(new_password)
+        
+        cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (hashed_new_password, user_id))
+        con.commit() 
+
+        return jsonify({"success": True, "message": "Password updated securely!"})
+
+    except Exception as e:
+        if con: con.rollback()
+        print(f"Database error during password change: {e}")
+        return jsonify({"error": "Server error. Could not update password."}), 500
+        
+    finally:
+        if cur: cur.close()
+        if con: con.close()
+@app.route('/journey')
+def journey():
+    # Make sure they are logged in!
+    if 'user_id' not in session:
+        return redirect('/login')
+    return render_template('journey.html')
+@app.route('/api/journey')
+def api_journey():
+    user_id = session.get('user_id')
+    if not user_id:
+        print("Hii")
+        return jsonify({"error": "Unauthorized"}), 401
+
+
+    con = None
+    cur = None
+    try:
+        con = getDBConnection()
+        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # The Ultimate SQL Query:
+        # Grabs all concepts, counts total available questions, 
+        # counts how many THIS user solved, and creates a comma-separated list of their solved question titles!
+        cur.execute("""
+            SELECT 
+                c.title AS concept_title,
+                COUNT(DISTINCT q.id) AS total_questions,
+                COUNT(DISTINCT up.question_id) AS solved_questions,
+                STRING_AGG(DISTINCT q.title, ', ') AS solved_list
+            FROM concepts c
+            LEFT JOIN questions q ON c.id = q.concept_id
+            LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
+            GROUP BY c.id, c.title
+        """, (user_id,))
+        
+        db_results = cur.fetchall()
+        print(db_results)
+        journey_data = {}
+        for row in db_results:
+            title = row['concept_title']
+            
+            # Format the text for the hover tooltip
+            details = "Locked. Solve previous concepts first."
+            if row['solved_questions'] > 0:
+                details = f"Solved: {row['solved_list']}"
+            elif row['total_questions'] == 0:
+                details = "Questions coming soon."
+
+            # Use the EXACT concept title from your database as the dictionary key
+            journey_data[title] = {
+                "solved": row['solved_questions'],
+                "total": row['total_questions'],
+                "details": details
+            }
+
+        return jsonify(journey_data), 200
+
+    except Exception as e:
+        print("Error fetching journey data:", e)
+        return jsonify({"error": "Failed to load journey"}), 500
+    finally:
+        if cur: cur.close()
+        if con: con.close()
 if __name__ == "__main__":
     app.secret_key="THERRANGBHRUCH"
     app.run(debug=True)

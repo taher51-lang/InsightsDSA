@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightsDSA - My Journey</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/static/journey.css">
+
+</head>
+<body class="bg-light">
+    <div class="container-fluid p-0">
+        <div class="d-flex flex-column flex-lg-row min-vh-100">
+            
+           <main class="content flex-grow-1 p-4 d-flex flex-column bg-dark">
+    <div class="d-flex justify-content-between align-items-start mb-4 z-3 position-relative">
+    <div>
+        <h2 class="fw-bold text-white mb-0">Neural Pathway</h2>
+        <p class="text-white-50 mb-1">Your Data Structures & Algorithms Mastery</p>
+        
+        <div id="target-tip" class="badge bg-dark border border-secondary text-info px-3 py-2 rounded-pill mt-2" style="font-size: 0.75rem; transition: opacity 0.3s ease;">
+            <i class="bi bi-lightbulb-fill text-warning me-1"></i> 
+            Pro Tip: Fill nodes to <strong>70%</strong> to achieve interview readiness.
+        </div>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="/dashboard" class="btn btn-outline-secondary rounded-pill px-3 d-flex align-items-center" title="Back to Dashboard">
+            <i class="bi bi-arrow-left me-xl-2"></i>
+            <span class="d-none d-xl-inline">Dashboard</span>
+        </a>
+
+        <button onclick="toggleUIText()" class="btn btn-outline-secondary rounded-pill px-3" title="Toggle UI text for screenshots">
+            <i id="eye-icon" class="bi bi-eye-slash-fill"></i>
+        </button>
+        
+        <button class="btn btn-outline-light fw-bold rounded-pill px-4">
+            <i class="bi bi-camera-fill me-2"></i>Snapshot
+        </button>
+    </div>
+</div>
+
+    <div class="network-canvas flex-grow-1 position-relative rounded-4 overflow-hidden border border-secondary border-opacity-25" id="canvas-container">
+    
+    <svg id="svg-lines" class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 1; pointer-events: none;"></svg>
+
+    <div id="node-arrays" class="skill-node node-mastered" style="left: 10%; top: 50%;" data-bs-toggle="popover" title="Arrays & Hash" data-bs-content="Completed: Two Sum, Valid Anagram, etc.">
+        <div class="node-liquid" style="height: 100%;"></div> <div class="node-content z-3 position-relative">
+            <i class="bi bi-layers-fill fs-4 mb-1"></i>
+            <span class="fw-bold">Arrays & Hash</span>
+            <small>15/15</small>
+        </div>
+    </div>
+
+    <div id="node-pointers" class="skill-node node-mastered" style="left: 35%; top: 30%;" data-bs-toggle="popover" title="Two Pointers" data-bs-content="Completed: 3Sum, Container Water, etc.">
+        <div class="node-liquid" style="height: 100%;"></div>
+        <div class="node-content z-3 position-relative">
+            <i class="bi bi-arrows-collapse fs-4 mb-1"></i>
+            <span class="fw-bold">Two Pointers</span>
+            <small>7/7</small>
+        </div>
+    </div>
+    
+    <div id="node-sliding" class="skill-node node-active" style="left: 35%; top: 70%;" data-bs-toggle="popover" title="Sliding Window" data-bs-content="In Progress: Buy/Sell Stock">
+        <div class="node-liquid" style="height: 33%;"></div>
+        <div class="node-content z-3 position-relative">
+            <i class="bi bi-window-sidebar fs-4 mb-1"></i>
+            <span class="fw-bold">Sliding Window</span>
+            <small>2/6</small>
+        </div>
+    </div>
+
+    <div id="node-trees" class="skill-node node-locked" style="left: 65%; top: 20%;">
+        <div class="node-liquid" style="height: 0%;"></div>
+        <div class="node-content z-3 position-relative">
+            <i class="bi bi-diagram-3-fill fs-4 mb-1"></i>
+            <span class="fw-bold">Trees</span>
+            <small>0/14</small>
+        </div>
+    </div>
+    
+    <div id="node-stack" class="skill-node node-locked" style="left: 65%; top: 50%;">
+        <div class="node-liquid" style="height: 12%;"></div>
+        <div class="node-content z-3 position-relative">
+            <i class="bi bi-stack fs-4 mb-1"></i>
+            <span class="fw-bold">Stack</span>
+            <small>1/8</small>
+        </div>
+    </div>
+    
+    </div>
+</main>
+            
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+    // 1. Load the data and paint the nodes FIRST
+    await loadJourneyData();
+    
+    // 2. If the user resizes their window, redraw the lines so they stay connected
+    window.addEventListener('resize', drawNetwork);
+});
+
+async function loadJourneyData() {
+    const container = document.getElementById('canvas-container');
+    
+    // ==========================================
+    // HERE IS THE VISUAL MAP OBJECT!
+    // Make sure these keys (e.g., "Arrays & Hashing") EXACTLY match the titles in your database's 'concepts' table!
+    // ==========================================
+    const visualMap = {
+        "Arrays & Hashing": { top: "50%", left: "10%", icon: "bi-layers-fill", title: "Arrays & Hash" },
+        "Two Pointers": { top: "30%", left: "35%", icon: "bi-arrows-collapse", title: "Two Pointers" },
+        "Sliding Window": { top: "70%", left: "35%", icon: "bi-window-sidebar", title: "Sliding Window" },
+        "Trees": { top: "20%", left: "65%", icon: "bi-diagram-3-fill", title: "Trees" },
+        "Stack": { top: "50%", left: "65%", icon: "bi-stack", title: "Stack" },
+        "Linked Lists": { top: "80%", left: "65%", icon: "bi-link", title: "Linked Lists" },
+        "Graphs": { top: "35%", left: "85%", icon: "bi-projector-fill", title: "Graphs" },
+        "Dynamic Programming": { top: "65%", left: "85%", icon: "bi-cpu-fill", title: "Dynamic Prog." }
+    };
+
+    try {
+        // Fetch the REAL data from your Python backend
+        const response = await fetch('/api/journey');
+        const liveData = await response.json();
+
+        // Start building the HTML. Keep the SVG canvas at the base!
+        let htmlContent = `<svg id="svg-lines" class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 1; pointer-events: none;"></svg>`;
+
+        // Merge Visuals with Live Data to create the Liquid Buckets
+        for (const [key, layout] of Object.entries(visualMap)) {
+            // If the database has no data for this concept yet, default to 0
+            const data = liveData[key] || { solved: 0, total: 1, details: "No data available yet." };
+            
+            // Calculate the liquid fill percentage!
+            let percentage = 0;
+            if (data.total > 0) {
+                percentage = Math.round((data.solved / data.total) * 100);
+            }
+            if (percentage > 100) percentage = 100;
+
+            // Determine the visual state of the node
+            let statusClass = "node-locked";
+            if (percentage === 100) {
+                statusClass = "node-mastered";
+            } else if (percentage > 0) {
+                statusClass = "node-active";
+            }
+
+            // Create a safe ID for the HTML element (removes spaces/special chars)
+            const safeId = key.replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+
+            // Build the specific Node HTML
+            htmlContent += `
+                <div id="node-${safeId}" class="skill-node ${statusClass}" 
+                     style="left: ${layout.left}; top: ${layout.top};" 
+                     data-bs-toggle="popover" title="${layout.title}" data-bs-content="${data.details}">
+                    
+                    <div class="node-liquid" style="height: ${percentage}%;"></div>
+                    
+                    <div class="node-content z-3 position-relative">
+                        <i class="bi ${layout.icon} fs-4 mb-1"></i>
+                        <span class="fw-bold">${layout.title}</span>
+                        <small>${data.solved}/${data.total}</small>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Inject the generated HTML into the page
+        container.innerHTML = htmlContent;
+
+        // Initialize Bootstrap Popovers for the hover details
+        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+        popoverTriggerList.map(function (popoverTriggerEl) {
+            return new bootstrap.Popover(popoverTriggerEl, { container: 'body', html: true, trigger: 'hover focus' });
+        });
+
+        // Finally, draw the glowing lines now that the nodes exist on the screen!
+        drawNetwork();
+
+    } catch (error) {
+        console.error("Error loading journey:", error);
+        container.innerHTML = `<div class="text-white text-center mt-5">Error loading your neural pathway. Make sure the Python server is running!</div>`;
+    }
+}
+
+// ==========================================
+// THE DRAWING FUNCTIONS (Curves & Lines)
+// ==========================================
+function drawNetwork() {
+    const svg = document.getElementById('svg-lines');
+    if (!svg) return;
+    svg.innerHTML = ''; 
+
+    // We use the "safeId" format here (lowercase, no spaces) to match the generated HTML IDs
+    const connections = [
+        ['node-arrayshashing', 'node-twopointers', '#00f0ff'], 
+        ['node-arrayshashing', 'node-slidingwindow', '#b026ff'],  
+        ['node-arrayshashing', 'node-stack', '#333333'],    
+        ['node-twopointers', 'node-trees', '#333333'],
+        ['node-slidingwindow', 'node-linkedlists', '#333333'],
+        ['node-trees', 'node-graphs', '#333333'],
+        ['node-linkedlists', 'node-dynamicprogramming', '#333333'],
+        ['node-stack', 'node-graphs', '#333333']
+    ];
+
+    connections.forEach(conn => drawCurve(conn[0], conn[1], conn[2]));
+}
+
+function drawCurve(id1, id2, color) {
+    const el1 = document.getElementById(id1);
+    const el2 = document.getElementById(id2);
+    const container = document.getElementById('canvas-container');
+    const svg = document.getElementById('svg-lines');
+
+    if (!el1 || !el2 || !container || !svg) return;
+
+    const rect1 = el1.getBoundingClientRect();
+    const rect2 = el2.getBoundingClientRect();
+    const contRect = container.getBoundingClientRect();
+
+    const x1 = (rect1.left - contRect.left) + (rect1.width / 2);
+    const y1 = (rect1.top - contRect.top) + (rect1.height / 2);
+    const x2 = (rect2.left - contRect.left) + (rect2.width / 2);
+    const y2 = (rect2.top - contRect.top) + (rect2.height / 2);
+
+    const curveDistance = Math.abs(x2 - x1) * 0.5;
+    const pathData = `M ${x1} ${y1} C ${x1 + curveDistance} ${y1}, ${x2 - curveDistance} ${y2}, ${x2} ${y2}`;
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', pathData);
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', '3');
+    
+    if (color !== '#333333') {
+        path.setAttribute('style', `filter: drop-shadow(0px 0px 5px ${color}); opacity: 0.6;`);
+    } else {
+        path.setAttribute('style', `opacity: 0.3;`);
+    }
+
+    svg.appendChild(path);
+}
+// Function to hide/show the Pro Tip for clean screenshots
+function toggleUIText() {
+    const tip = document.getElementById('target-tip');
+    const icon = document.getElementById('eye-icon');
+    
+    // Toggle between visible (opacity 1) and hidden (opacity 0)
+    if (tip.style.opacity === '0') {
+        tip.style.opacity = '1';
+        icon.className = 'bi bi-eye-slash-fill'; // Icon shows "click to hide"
+    } else {
+        tip.style.opacity = '0';
+        icon.className = 'bi bi-eye-fill'; // Icon shows "click to reveal"
+    }
+}
+    </script>
+    
+</body>
+</html>
