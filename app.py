@@ -5,6 +5,7 @@ import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2 import errors
+from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 import os
 from datetime import datetime
@@ -70,8 +71,73 @@ def getDBConnection():
     )
     return con
 
-from werkzeug.security import check_password_hash, generate_password_hash
+# Configure Google OAuth
+oauth = OAuth(app)
+google = oauth.register(
+    name='google',
+    client_id=os.getenv("GOOGLE_CLIENT_ID"),
+    client_secret=os.getenv("GOOGLE_CLIENT_SECRET"),
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid email profile'}
+)
 
+# 1. THE TRIGGER: Send user to Google
+@app.route('/login/google')
+def login_google():
+    # This must match the URI you added in Google Console exactly
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+# 2. THE RECEIVER: Catch the data coming back
+@app.route('/login/callback')
+def google_callback():
+    token = google.authorize_access_token()
+    user_info = token.get('userinfo')
+    email = user_info['email']
+    g_id = user_info['sub'] # This is the permanent unique ID from Google
+    full_name = user_info.get('name', 'Explorer')
+    print(full_name)
+    first_name = full_name.split()[0]
+    pic = user_info['picture']
+
+    conn = getDBConnection()
+    cur = conn.cursor()
+
+    # 1. Check if user already exists (by email)
+    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+    user = cur.fetchone()
+    session["user_id"] = (user[0])
+
+    if user:
+        # 2. LINKING: Update existing user with Google ID and Pic
+        cur.execute("""
+            UPDATE users 
+            SET google_id = %s, profile_pic = %s 
+            WHERE email = %s
+        """, (g_id, pic, email))
+    else:
+        # 3. REGISTRATION: Create a new user row
+        # Note: We leave the 'password' column null since they use Google
+        cur.execute("""
+            INSERT INTO users (name, email, google_id, profile_pic) 
+            VALUES (%s, %s, %s, %s)
+        """, (full_name, email, g_id, pic))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    # Set session data for the UI
+    session['user_email'] = email
+    session['user_name'] = first_name
+    session['profile_pic'] = pic
+    
+    
+    return redirect(url_for('dashboard'))
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json()
@@ -92,7 +158,10 @@ def login():
         # 1. Ask for the user by username ONLY
         cur.execute("SELECT id, username, name, userpassword FROM users WHERE username = %s", (username,))
         result = cur.fetchone()
-        
+        if result['userpassword'] is None and result['google_id'] is not None:
+            return jsonify({
+                "error": "This account is linked with Google. Please use the 'Continue with Google' button."
+            }), 403
         # If no user is found with that username
         if not result:
             return jsonify({"error": "Invalid Credentials"}), 401
@@ -211,7 +280,7 @@ def dashboard():
     short_term = counts['short']
     medium_term = counts['medium']
     long_term = counts['long']
-    
+    print(f"Logged in as: {session.get('user_name')}")
     total_solved = short_term + medium_term + long_term
     chart_data = [short_term, medium_term, long_term]
 
@@ -261,9 +330,10 @@ def dashboard():
     cur.close()
     con.close()
     
-    print(f"DEBUG: Total Solved: {total_solved}, Retention: {retention_pct}%")
-    
+    # print(f"DEBUG: Total Solved: {total_solved}, Retention: {retention_pct}%")
+    print(session.get("first_name"))
     return render_template('dashboard.html', 
+                           name=session.get("user_name"),
                            retention_pct=retention_pct,
                            days_label=days_label,
                            days_color=days_color,
@@ -602,6 +672,7 @@ def resource():
 def profile():
     return render_template('profile.html')
 def getUserInfo(user_id,cur):
+    print(user_id)
     # 1. Execute the query safely (the trailing comma in (user_id,) is required by psycopg2!)
     cur.execute("""
         SELECT id, name, username, phone_number, email 
@@ -611,9 +682,10 @@ def getUserInfo(user_id,cur):
     
     # 2. Fetch the single row
     user_row = cur.fetchone()
-    
+    print(user_row)
     # 3. Safety check: if the user doesn't exist, return None
     if not user_row:
+        print("Hiiiii")
         return None
         
     # 4. Map the raw SQL tuple into a clean Python dictionary
@@ -679,7 +751,6 @@ def getLogs(user_id, cur):
             
         # We don't need to send the raw timestamp to the frontend anymore
         del log['solved_at']
-    print("Hello")
     return logs_data
 @app.route('/api/profile')
 def api_profile():
@@ -695,6 +766,7 @@ def api_profile():
     userinfo = getUserInfo(user_id, cur)
     userLogs = getLogs(user_id,cur)
     print(userLogs)
+    print("userinfo")
     print(userinfo)
     # 4. Close Tools (Faucet first, then Main!)
     cur.close()
@@ -884,6 +956,12 @@ def get_similar(q_id):
     finally:
         cur.close()
         con.close()
+app.config.update(
+    SESSION_COOKIE_SAMESITE='Lax',
+    SESSION_COOKIE_SECURE=True, # ngrok uses HTTPS, so this must be True
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_NAME='flask_session' # Give it a specific name
+)
 if __name__ == "__main__":
     app.secret_key="THERRANGBHRUCH"
     app.run(debug=True)

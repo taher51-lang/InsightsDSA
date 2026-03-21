@@ -225,6 +225,16 @@
             }
         }
     });
+    
+</script>
+<script>
+    // Flask injects the value here, then JS saves it locally
+    const userNameFromFlask = "{{ name }}";
+    
+    if (userNameFromFlask) {
+        sessionStorage.setItem("name", userNameFromFlask);
+        console.log("SessionStorage synced with Google Identity!");
+    }
 </script>
 
 </html>

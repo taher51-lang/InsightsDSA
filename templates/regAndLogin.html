@@ -153,7 +153,26 @@
         #auth-container.right-panel-active .overlay {
             transform: translateX(50%);
         }
+        .social-container a {
+    transition: transform 0.2s ease, background-color 0.2s;
+    text-decoration: none;
+    color: #333;
+}
 
+.social-container a:hover {
+    /* background-color: #f8f9fa; */
+    transform: translateY(-1px);
+}
+
+/* Ensure inputs don't look like plain text boxes */
+.form-container input {
+    background-color: #eee;
+    border: none;
+    padding: 10px 15px;
+    margin: 4px 0;
+    width: 100%;
+    border-radius: 8px;
+}
         .overlay-panel {
             position: absolute;
             display: flex;
@@ -235,6 +254,7 @@
 
     /* Hide the desktop overlay completely */
     .overlay-container { display: none; }
+    
 }
     </style>
 </head>
@@ -246,7 +266,12 @@
     <form action="#" class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4">
         <h1 class="fw-bold mb-2">Create Account</h1>
         <span class="text-muted small mb-3">Join the community of developers</span>
-        
+        <div class="social-container mb-3">
+            <a href="{{ url_for('login_google') }}" class="btn btn-outline-dark rounded-pill px-3 py-2 d-flex align-items-center shadow-sm" style="font-size: 0.85rem;">
+                <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" width="16" class="me-2"> 
+                Sign up with Google
+            </a>
+        </div>
         <div class="w-100 mb-2 text-start">
             <input type="text" placeholder="First Name (e.g. Alex)" id="name_first" class="form-control" />
             <small id="name-error" class="text-danger ms-1" style="display:none; font-size: 0.75rem;">
@@ -284,20 +309,23 @@
 <div class="form-container sign-in-container">
     <form action="#" class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4">
         <h1 class="fw-bold mb-2">Sign in</h1>
-        <span class="text-muted small mb-3">or use your account</span>
         
-        <input type="text" placeholder="Username" id="user_name" />
-        <input type="password" placeholder="Password" id="user_pass" />
+        <div class="social-container mb-3">
+            <a href="{{ url_for('login_google') }}" class="btn btn-outline-dark rounded-pill px-3 py-2 d-flex align-items-center shadow-sm" style="font-size: 0.85rem;">
+                <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" width="16" class="me-2"> 
+                Continue with Google
+            </a>
+        </div>
         
-        <button type="button" id="loginbtn" class="mt-3">Sign In</button>
+        <span class="text-muted small mb-2">or use your username</span>
         
-        <p class="mt-3 d-block d-md-none">
-            New here? 
-            <a href="#" id="mobile-signUp" class="fw-bold text-dark">Create Account</a>
-        </p>
-    </form>
+        <input type="text" placeholder="Username" id="user_name" class="form-control mb-2" />
+        <input type="password" placeholder="Password" id="user_pass" class="form-control mb-2" />
+        
+        <button type="button" id="loginbtn" class="btn btn-primary rounded-pill px-4 mt-2">Sign In</button>
+        
+        </form>
 </div>
-
         <div class="overlay-container">
             <div class="overlay">
                 <div class="overlay-panel overlay-left">
