@@ -96,26 +96,32 @@
                     {% else %}
                     <div class="list-group list-group-flush">
                         {% for item in queue %}
-                        <div class="list-group-item px-0 py-3 d-flex align-items-center justify-content-between">
-                            <div>
-                                <span class="badge bg-light text-dark border mb-1">{{ item.concept_title }}</span>
+                        <div
+                            class="list-group-item px-0 py-3 d-flex align-items-center justify-content-between border-bottom">
 
-                                <h6 class="fw-bold mb-0">{{ item.question_title }}</h6>
+                            <div class="flex-grow-1 pe-4">
+                                <span class="badge bg-light text-dark border mb-2">{{ item.concept_title }}</span>
 
-                                <small class="text-danger fw-bold">
-                                    <i class="bi bi-clock-history me-1"></i> Due since last interval ({{
-                                    item.days_interval }} days)
+                                <h6 class="fw-bold mb-1" style="line-height: 1.4;">{{ item.question_title }}</h6>
+
+                                <small class="text-danger fw-bold d-block mt-1">
+                                    <i class="bi bi-clock-history me-1"></i> Due since last interval
+                                    ({{ item.days_interval }} day{% if item.days_interval != 1 %}s{% endif %})
                                 </small>
                             </div>
 
-                            <button class="btn bw-btn btn-sm px-4 rounded-pill"
-                                onclick="openReviewModal('{{ item.question_id }}', '{{ item.question_title }}', '{{ item.question_link }}')">
-                                Review
-                            </button>
-                            <button class="btn btn-sm btn-outline-primary px-4 rounded-pill shadow-sm"
-            onclick="openSimilarModal('{{ item.question_id }}')">
-            <i class="bi bi-magic me-1"></i> Solve Similar
-        </button>
+                            <div class="d-flex align-items-center gap-3 flex-shrink-0">
+                                <button class="btn btn-muted btn-outline-dark btn-sm px-4 rounded-pill fw-bold shadow-sm"
+                                    onclick="openReviewModal('{{ item.question_id }}', '{{ item.question_title }}', '{{ item.question_link }}')">
+                                    Review
+                                </button>
+                                <button
+                                    class="btn btn-sm btn-muted btn-outline-dark px-4 rounded-pill fw-bold shadow-sm d-flex align-items-center"
+                                    onclick="openSimilarModal('{{ item.question_id }}')">
+                                    <i class="bi bi-magic me-2"></i> Solve Similar
+                                </button>
+                            </div>
+
                         </div>
                         {% endfor %}
                     </div>
@@ -189,15 +195,19 @@
     </div>
     <div class="modal fade" id="similarModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content bg-dark border-secondary text-white rounded-4">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title">Recommended Path</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-4">
+            
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" style="color: #000; letter-spacing: 0.5px;">Recommended Path</h5>
+                
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <div id="similar-list" class="list-group list-group-flush">
+            
+            <div class="modal-body p-4">
+                <div id="similar-list" class="list-group list-group-flush gap-2">
                     </div>
             </div>
+            
         </div>
     </div>
 </div>
@@ -233,24 +243,24 @@
                 });
         }
         function openSimilarModal(qId, difficulty) {
-    const modal = new bootstrap.Modal(document.getElementById('similarModal'));
-    const list = document.getElementById('similar-list');
-    
-    list.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div> Finding similar challenges...</div>';
-    modal.show();
+            const modal = new bootstrap.Modal(document.getElementById('similarModal'));
+            const list = document.getElementById('similar-list');
 
-    // Fetch unsolved questions of same difficulty/concept
-    fetch(`/api/get_similar/${qId}`)
-        .then(res => res.json())
-        .then(data => {
-            list.innerHTML = data.map(item => `
-                <a href="/question/${item.id}" class="list-group-item list-group-item-action bg-transparent text-white border-secondary d-flex justify-content-between align-items-center py-3">
+            list.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm"></div> Finding similar challenges...</div>';
+            modal.show();
+
+            // Fetch unsolved questions of same difficulty/concept
+            fetch(`/api/get_similar/${qId}`)
+                .then(res => res.json())
+                .then(data => {
+                    list.innerHTML = data.map(item => `
+                <a href="/question/${item.id}" class="list-group-item list-group-item-action bg-transparent text-dark fw-bold border-secondary d-flex justify-content-between align-items-center py-3">
                     <span>${item.title}</span>
                     <span class="btn btn-sm btn-primary rounded-pill">Solve</span>
                 </a>
             `).join('') || '<div class="text-center p-3 text-muted">No similar unsolved problems found!</div>';
-        });
-}
+                });
+        }
     </script>
 </body>
 

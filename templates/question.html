@@ -10,31 +10,61 @@
     
     <style>
         :root {
-            --bg-dark: #0d1117;
-            --bg-panel: #161b22;
-            --border: #30363d;
-            --text: #c9d1d9;
+            --bg-body: #f8fafc;        /* Soft White */
+            --bg-card: #ffffff;        /* Pure White */
+            --border: #e2e8f0;         /* Soft Gray Border */
+            --text-main: #1e293b;      /* Deep Slate Text */
+            --text-muted: #64748b;
+            --primary: #4f46e5;        /* Indigo */
+            --ai-chat-bg: #f1f5f9;     /* Light Gray for AI bubbles */
         }
 
         body, html {
             height: 100%; margin: 0; overflow: hidden;
-            background-color: var(--bg-dark); color: var(--text);
-            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg-body); color: var(--text-main);
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
         }
 
-        .top-nav { height: 60px; background: #010409; border-bottom: 1px solid var(--border); z-index: 100; }
-        .main-wrapper { height: calc(100vh - 60px); }
-        .pane { height: 100%; overflow-y: auto; padding: 2.5rem; }
+        /* Layout Architecture */
+        .top-nav { 
+            height: 64px; 
+            background: var(--bg-card); 
+            border-bottom: 1px solid var(--border); 
+            z-index: 1000; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .main-wrapper { height: calc(100vh - 64px); }
+        .pane { height: 100%; overflow-y: auto; padding: 2.5rem; background: var(--bg-card); }
         
-        /* Custom Scrollbars */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-thumb { background: #484f58; border-radius: 10px; }
+        /* Description Styling */
+        .desc-area { line-height: 1.8; font-size: 1.05rem; color: #334155; }
+        .desc-area pre { 
+            background: #fdfdfd; 
+            padding: 1.2rem; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            margin-top: 1rem;
+            color: #0f172a;
+        }
 
-        .desc-area { line-height: 1.7; font-size: 1.05rem; }
-        .desc-area pre { background: #000; padding: 1.2rem; border-radius: 8px; border: 1px solid var(--border); margin-top: 1rem; }
-        
+        /* AI Tutor Section (The Right Pane) */
+        .ai-pane { background-color: #f8fafc !important; }
+        .chat-bubble {
+            background: var(--ai-chat-bg);
+            border-radius: 16px;
+            padding: 12px 16px;
+            max-width: 85%;
+            font-size: 0.95rem;
+        }
+
+        /* Custom Scrollbars for White Theme */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
         #loading-screen {
-            position: fixed; inset: 0; background: var(--bg-dark);
+            position: fixed; inset: 0; background: #ffffff;
             display: flex; justify-content: center; align-items: center; z-index: 9999;
         }
     </style>
@@ -42,62 +72,69 @@
 <body>
 
     <div id="loading-screen">
-        <div class="spinner-border text-primary"></div>
+        <div class="spinner-border text-primary" role="status"></div>
     </div>
 
     <nav class="top-nav d-flex align-items-center justify-content-between px-4">
-    <div class="d-flex align-items-center gap-3">
-        <button onclick="history.back()" class="btn btn-link text-white-50 p-0 shadow-none">
-            <i class="bi bi-arrow-left fs-4"></i>
-        </button>
-        <h5 id="q-title" class="mb-0 fw-bold text-white">Loading...</h5>
-        <span id="q-diff" class="badge border border-secondary rounded-pill">--</span>
-    </div>
-    <button id="solve-btn" class="btn btn-sm fw-bold rounded-pill px-4 py-2 transition-all btn-success">
-        <i class="bi bi-check2-circle me-1"></i> Mark Solved
-    </button>
-</nav>
-
-<div class="col-lg-7 pane border-end border-secondary border-opacity-25">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h6 class="text-muted text-uppercase small fw-bold mb-0">Description</h6>
-        <a id="leetcode-link" href="#" target="_blank" class="btn btn-link btn-sm text-primary text-decoration-none p-0">
-            LeetCode <i class="bi bi-box-arrow-up-right small"></i>
-        </a>
-    </div>
-    <div id="q-desc" class="desc-area"></div>
-</div>
+        <div class="d-flex align-items-center gap-3">
+            <button onclick="history.back()" class="btn btn-light rounded-circle shadow-none border-0">
+                <i class="bi bi-arrow-left fs-5"></i>
+            </button>
+            <h5 id="q-title" class="mb-0 fw-bold text-dark">Loading...</h5>
+            <span id="q-diff" class="badge bg-opacity-10 rounded-pill px-3 py-2 text-uppercase" style="font-size: 0.7rem;">--</span>
+        </div>
+        
+        <div class="d-flex align-items-center gap-3">
+            <button id="solve-btn" class="btn btn-success fw-bold rounded-pill px-4 py-2 border-0 shadow-sm">
+                <i class="bi bi-check2-circle me-1"></i> Mark Solved
+            </button>
+            <img src="{{ session['profile_pic'] }}" class="rounded-circle border border-2 border-light shadow-sm" style="width: 38px; height: 38px; object-fit: cover;">
+        </div>
+    </nav>
 
     <div class="container-fluid p-0 main-wrapper">
         <div class="row g-0 h-100">
-            <div class="col-lg-7 pane border-end border-secondary border-opacity-25">
+            
+            <div class="col-lg-7 pane border-end">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h6 class="text-muted text-uppercase small fw-bold mb-0">Description</h6>
-                    <a id="leetcode-link" href="#" target="_blank" class="btn btn-link btn-sm text-primary text-decoration-none p-0">
-                        LeetCode <i class="bi bi-box-arrow-up-right small"></i>
+                    <h6 class="text-muted text-uppercase small fw-bold tracking-wider mb-0">Problem Statement</h6>
+                    <a id="leetcode-link" href="#" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        View on LeetCode <i class="bi bi-box-arrow-up-right ms-1"></i>
                     </a>
                 </div>
-                <div id="q-desc" class="desc-area"></div>
+                <div id="q-desc" class="desc-area">
+                    </div>
             </div>
 
-            <div class="col-lg-5 pane d-flex flex-column bg-black bg-opacity-10 p-0">
-                <div class="px-4 py-3 border-bottom border-secondary border-opacity-25 bg-dark bg-opacity-50">
-                    <i class="bi bi-robot text-primary me-2"></i><span class="fw-bold small">AI TUTOR</span>
+            <div class="col-lg-5 d-flex flex-column ai-pane p-0">
+                <div class="px-4 py-3 border-bottom bg-white d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi bi-robot text-primary me-2"></i>
+                        <span class="fw-bold small text-dark">AI TUTOR</span>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">Gemini Pro</span>
                 </div>
                 
                 <div id="chat-flow" class="flex-grow-1 overflow-y-auto px-4 py-4 d-flex flex-column gap-3">
+                    <div class="chat-bubble">
+                        👋 Hi! I'm your DSA tutor. How can I help you with this problem?
                     </div>
+                </div>
 
-                <div class="p-4 border-top border-secondary border-opacity-25 bg-dark">
+                <div class="p-4 border-top bg-white">
                     <div class="position-relative">
-                        <textarea id="ai-input" class="form-control bg-dark text-white border-secondary rounded-4 shadow-none py-3 pe-5" 
-                                  rows="2" placeholder="Ask a hint or paste code..."></textarea>
-                        <button id="send-btn" class="btn btn-primary rounded-circle position-absolute bottom-0 end-0 m-2" style="width: 40px; height: 40px;">
+                        <textarea id="ai-input" class="form-control bg-light border-0 rounded-4 shadow-none py-3 pe-5" 
+                                  rows="2" placeholder="Ask for a hint or explain logic..."></textarea>
+                        <button id="send-btn" class="btn btn-primary rounded-circle position-absolute bottom-0 end-0 m-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
                             <i class="bi bi-send-fill"></i>
                         </button>
                     </div>
+                    <p class="text-center text-muted mt-2 mb-0" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle"></i> AI can make mistakes. Verify critical logic.
+                    </p>
                 </div>
             </div>
+
         </div>
     </div>
 

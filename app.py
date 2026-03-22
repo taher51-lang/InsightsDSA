@@ -106,34 +106,39 @@ def google_callback():
     # 1. Check if user already exists (by email)
     cur.execute("SELECT id FROM users WHERE email = %s", (email,))
     user = cur.fetchone()
-    session["user_id"] = (user[0])
 
     if user:
-        # 2. LINKING: Update existing user with Google ID and Pic
+        # 2. LINKING: Update existing user
         cur.execute("""
             UPDATE users 
             SET google_id = %s, profile_pic = %s 
             WHERE email = %s
         """, (g_id, pic, email))
+        user_id = user[0] 
     else:
-        # 3. REGISTRATION: Create a new user row
-        # Note: We leave the 'password' column null since they use Google
+        # 3. REGISTRATION: Added 'RETURNING id' to the SQL string
         cur.execute("""
-            INSERT INTO users (name, email, google_id, profile_pic) 
-            VALUES (%s, %s, %s, %s)
-        """, (full_name, email, g_id, pic))
+            INSERT INTO users (username, name, email, google_id, profile_pic) 
+            VALUES (%s, %s, %s, %s, %s) 
+            RETURNING id
+        """, (first_name, full_name, email, g_id, pic))
+        
+        # Now fetchone() actually has the new ID to grab!
+        result = cur.fetchone()
+        user_id = result[0]
+
+    # 4. Commit and set session
+    conn.commit()
+    session["user_id"] = user_id
+    session["user_id"] = user_id
     conn.commit()
     cur.close()
     conn.close()
-
     # Set session data for the UI
     session['user_email'] = email
     session['user_name'] = first_name
     session['profile_pic'] = pic
-    
-    
     return redirect(url_for('dashboard'))
-
 @app.route('/logout')
 def logout():
     session.clear()
@@ -143,18 +148,14 @@ def login():
     data = request.get_json()
     username = data.get("username")
     userpass = data.get("userpass")
-    
     if not username or not userpass:
         return jsonify({"error": "Missing credentials"}), 400
-
     # Initialize these as None so the 'finally' block doesn't crash if connection fails early
     con = None
     cur = None
-    
     try:
         con = getDBConnection()
         cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        
         # 1. Ask for the user by username ONLY
         cur.execute("SELECT id, username, name, userpassword FROM users WHERE username = %s", (username,))
         result = cur.fetchone()
@@ -165,11 +166,9 @@ def login():
         # If no user is found with that username
         if not result:
             return jsonify({"error": "Invalid Credentials"}), 401
-            
         current_db_password = result['userpassword']
         is_valid = False
         needs_upgrade = False
-        
         # 2. THE BILINGUAL CHECK
         if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
             # It's a secure hash!
@@ -179,22 +178,18 @@ def login():
             is_valid = (current_db_password == userpass)
             if is_valid:
                 needs_upgrade = True # Flag them for an upgrade!
-                
         # If the password didn't match either way, kick them out
         if not is_valid:
             return jsonify({"error": "Invalid Credentials"}), 401
-            
         # 3. AUTO-UPGRADE OLD ACCOUNTS (The Self-Cleaning Magic)
         if needs_upgrade:
             new_hashed_password = generate_password_hash(userpass)
             cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (new_hashed_password, result['id']))
             con.commit()
             print(f"Security Upgrade Complete: Hashed password for user '{username}'")
-            
         # 4. Set Session and Log Them In
         session['user_id'] = result['id'] 
         session['username'] = result['username']    
-        
         return jsonify({"message": "Login successful", "name": result['name']}), 200
 
     except Exception as e:
@@ -307,10 +302,8 @@ def dashboard():
         else:
             avg_ease = 2.5
             next_date = None
-            
-        # Calculate Percentage
+        # Calculate Percenta
         retention_pct = int(min(100, (avg_ease / 3.0) * 100))
-
         # Calculate Days Label
         if next_date:
             delta = (next_date - date.today()).days
@@ -326,10 +319,8 @@ def dashboard():
         else:
             days_label = "No Reviews"
             days_color = "text-muted"
-
     cur.close()
     con.close()
-    
     # print(f"DEBUG: Total Solved: {total_solved}, Retention: {retention_pct}%")
     print(session.get("first_name"))
     return render_template('dashboard.html', 
@@ -472,6 +463,10 @@ def toggle_solve():
         if exists:
             # OPTION A: Reset (Delete row)
             cur.execute("DELETE FROM user_progress WHERE user_id = %s AND question_id = %s", (user_id, q_id))
+            
+            # NEW: Remove it from the activity log so they can't farm consistency points by toggling!
+            cur.execute("DELETE FROM activity_log WHERE user_id = %s AND question_id = %s AND action = 'solved'", (user_id, q_id))
+            
             action = "reset"
             
         else:
@@ -485,6 +480,13 @@ def toggle_solve():
                 VALUES (%s, %s, NOW(), 1, 2.5, 0, %s, TRUE)
             """
             cur.execute(query, (user_id, q_id, tomorrow))
+            
+            # NEW: Drop the 'solved' event into the Activity Log!
+            cur.execute("""
+                INSERT INTO activity_log (user_id, question_id, action) 
+                VALUES (%s, %s, 'solved')
+            """, (user_id, q_id))
+            
             action = "solved"
             
         con.commit() 
@@ -623,7 +625,14 @@ def api_review():
                 solved_at = NOW()
             WHERE user_id = %s AND question_id = %s
         """, (new_ivl, new_ease, new_reps, new_date, user_id, question_id))
-        
+        # ... your existing code that updates user_progress ...
+
+# NEW: Drop a record into the activity log
+        cur.execute("""
+            INSERT INTO activity_log (user_id, question_id, action) 
+            VALUES (%s, %s, %s)
+            """, (user_id, question_id, 'solved')) # Change 'solved' to 'reviewed' for your review route
+# Make sure you con.commit() after this!
         con.commit()
         return jsonify({"status": "success", "new_date": str(new_date)})
 
@@ -697,7 +706,6 @@ def getUserInfo(user_id,cur):
         "phone_number": user_row['phone_number'],
         "email": user_row['email']
     }
-    print("hii")
     return user_data
 def getLogs(user_id, cur):
     # Notice we removed TO_CHAR. We just want the raw timestamp now.
@@ -765,9 +773,6 @@ def api_profile():
     total_solved, streak = getStreak(user_id, con, cur)
     userinfo = getUserInfo(user_id, cur)
     userLogs = getLogs(user_id,cur)
-    print(userLogs)
-    print("userinfo")
-    print(userinfo)
     # 4. Close Tools (Faucet first, then Main!)
     cur.close()
     con.close()
@@ -858,44 +863,38 @@ def journey():
 def api_journey():
     user_id = session.get('user_id')
     if not user_id:
-        print("Hii")
         return jsonify({"error": "Unauthorized"}), 401
-
 
     con = None
     cur = None
     try:
         con = getDBConnection()
         cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
         # The Ultimate SQL Query:
         # Grabs all concepts, counts total available questions, 
         # counts how many THIS user solved, and creates a comma-separated list of their solved question titles!
         cur.execute("""
-            SELECT 
-                c.title AS concept_title,
-                COUNT(DISTINCT q.id) AS total_questions,
-                COUNT(DISTINCT up.question_id) AS solved_questions,
-                STRING_AGG(DISTINCT q.title, ', ') AS solved_list
-            FROM concepts c
-            LEFT JOIN questions q ON c.id = q.concept_id
-            LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
-            GROUP BY c.id, c.title
-        """, (user_id,))
-        
+    SELECT 
+        c.title AS concept_title,
+        COUNT(DISTINCT q.id) AS total_questions,
+        COUNT(DISTINCT CASE WHEN up.is_solved = TRUE THEN up.question_id ELSE NULL END) AS solved_questions,
+        STRING_AGG(DISTINCT CASE WHEN up.is_solved = TRUE THEN q.title ELSE NULL END, ', ') AS solved_list
+    FROM concepts c
+    LEFT JOIN questions q ON c.id = q.concept_id
+    LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
+    GROUP BY c.id, c.title
+""", (user_id,))
         db_results = cur.fetchall()
-        print(db_results)
+        # print(db_results)
         journey_data = {}
         for row in db_results:
             title = row['concept_title']
-            
             # Format the text for the hover tooltip
             details = "Locked. Solve previous concepts first."
             if row['solved_questions'] > 0:
                 details = f"Solved: {row['solved_list']}"
             elif row['total_questions'] == 0:
                 details = "Questions coming soon."
-
             # Use the EXACT concept title from your database as the dictionary key
             journey_data[title] = {
                 "solved": row['solved_questions'],
@@ -962,6 +961,56 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_NAME='flask_session' # Give it a specific name
 )
+@app.route('/api/consistency')
+def api_consistency():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = getDBConnection()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    try:
+        # Grab the raw stats from the last 30 days
+        cur.execute("""
+            SELECT 
+                COUNT(DISTINCT DATE(created_at)) AS active_days,
+                COUNT(CASE WHEN action = 'solved' THEN 1 END) AS solves,
+                COUNT(CASE WHEN action = 'reviewed' THEN 1 END) AS reviews
+            FROM activity_log
+            WHERE user_id = %s AND created_at >= NOW() - INTERVAL '30 days'
+        """, (user_id,))
+        stats = cur.fetchone()
+
+        active_days = stats['active_days'] or 0
+        solves = stats['solves'] or 0
+        reviews = stats['reviews'] or 0
+
+        # --- THE MATH ---
+        # 1. Habit (50 pts): Max points if active 20 out of the last 30 days
+        habit_score = min(50, (active_days / 20.0) * 50)
+        
+        # 2. Discipline (50 pts): Max points if you do at least 1 review for every 2 new solves
+        discipline_score = 0
+        if solves > 0:
+            discipline_score = min(50, (reviews / (solves * 0.5)) * 50)
+        elif solves == 0 and reviews > 0:
+            discipline_score = 50 # Reviewing without solving is still great discipline
+            
+        score = round(habit_score + discipline_score)
+        
+        return jsonify({
+            "score": score,
+            "active_days": active_days,
+            "solves": solves,
+            "reviews": reviews
+        }), 200
+
+    except Exception as e:
+        print(f"Consistency Error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        con.close()
 if __name__ == "__main__":
     app.secret_key="THERRANGBHRUCH"
     app.run(debug=True)

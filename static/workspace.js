@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", async () => {
     const qId = window.location.pathname.split('/').pop();
-    
     // UI Elements
     const titleEl = document.getElementById('q-title');
     const diffEl = document.getElementById('q-diff');
@@ -10,29 +9,45 @@ document.addEventListener("DOMContentLoaded", async () => {
     const aiInput = document.getElementById('ai-input');
     const sendBtn = document.getElementById('send-btn');
     const lcLink = document.getElementById('leetcode-link');
-
     // 1. Initial Load
     try {
         const res = await fetch(`/api/get_question_details/${qId}`);
         const data = await res.json();
-
         if (data.error) throw new Error(data.error);
-
         titleEl.innerText = data.title;
         diffEl.innerText = data.difficulty;
-        descEl.innerHTML = data.description || "No description provided.";
-        lcLink.href = data.link;
-        
-        updateSolveUI(data.is_solved);
-        addMsg("ai", `I'm analyzing **${data.title}**. Need a strategy or a hint?`);
+        console.log(data.description)
+        const desc = data.description;
 
+// 1. Handle the empty state properly first
+if (!desc) {
+    descEl.innerHTML = "<span class='text-muted'>No description provided.</span>";
+} else {
+    // 2. Split right BEFORE the word "Example" (case-insensitive)
+    // The (?=...) is a "Positive Lookahead". It splits the string but KEEPS the word "Example".
+    const parts = desc.split(/(?=Example)/i);
+
+    // 3. Rebuild the HTML. 
+    // parts[0] is the main description. parts[1], parts[2] etc. are the examples.
+    descEl.innerHTML = parts.map((part, index) => {
+        if (index === 0) return part; // Return main description as-is
+        
+        // Wrap every example in a nice indented Bootstrap block
+        return `<div class="mt-4 p-3 bg-light border-start border-primary border-4 rounded">
+                    ${part}
+                </div>`;
+    }).join('');
+}
+        descEl.style.fontWeight="bold"
+        lcLink.href = data.link;
+        updateSolveUI(data.is_solved);
+        // addMsg("ai", `I'm analyzing **${data.title}**. Need a strategy or a hint?`);
         // Remove Loader
         document.getElementById('loading-screen').style.display = 'none';
     } catch (err) {
         console.error("Error:", err);
         titleEl.innerText = "Error Loading Question";
     }
-
     // 2. Toggle Solve Logic
     solveBtn.onclick = async () => {
         solveBtn.disabled = true;
