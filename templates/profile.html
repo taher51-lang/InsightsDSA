@@ -79,8 +79,9 @@
             </aside>
             <main class="content flex-grow-1 px-3 px-lg-4 pb-3 pb-lg-4 pt-3 bg-light overflow-auto">
                 <div class="container-fluid" style="max-width: 1400px;">
-                    <div class="card border-0 rounded-4 shadow-sm mb-4 bg-white">
+                   <div class="card border-0 rounded-4 shadow-sm mb-4 bg-white">
                         <div class="card-body p-4 p-lg-5">
+                            
                             <div class="row align-items-center">
                                 <div class="col-md-8 d-flex align-items-center gap-4 mb-4 mb-md-0">
                                     <img id="profile-img" src="" alt="Profile Picture"
@@ -105,6 +106,21 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <hr class="text-muted opacity-25 my-4">
+
+                            <div class="row align-items-center">
+                                <div class="col-md-8 mb-3 mb-md-0">
+                                    <h6 class="fw-bold mb-1"><i class="bi bi-robot text-primary me-2"></i>AI Coach Settings</h6>
+                                    <p class="text-muted small mb-0">Update your AI provider or API key for the Insights Engine.</p>
+                                </div>
+                                <div class="col-md-4 text-md-end">
+                                    <button class="btn btn-dark rounded-pill fw-medium px-4 py-2" onclick="openAIEditModal()">
+                                        <i class="bi bi-key-fill me-2"></i>Configure Engine
+                                    </button>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
                     <h5 class="fw-bold mb-3 px-1 text-dark">Problem Solving Logs</h5>
@@ -166,6 +182,7 @@
                     </div>
                 </div>
             </div>
+            
             <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
             <script>
                 document.addEventListener("DOMContentLoaded", async function () {
@@ -284,6 +301,9 @@
                     }
                 });
             </script>
+            {% include 'ai_modal.html' %}
+
+    <script src="/static/ai_core.js"></script>
 </body>
 
 </html>

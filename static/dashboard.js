@@ -37,3 +37,4 @@ document.addEventListener("DOMContentLoaded", function() {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
+// Function 1: Make the UI dynamic so it feels like a premium app

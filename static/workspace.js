@@ -67,9 +67,14 @@ if (!desc) {
     };
 
     // 3. AI Chat Logic
+    // 3. AI Chat Logic (Inside static/workspace.js)
     async function askAI() {
         const text = aiInput.value.trim();
         if (!text) return;
+
+        // GRAB THE KEYS FROM THE CENTRAL VAULT
+        const apiKey = localStorage.getItem('ai_api_key');
+        const provider = localStorage.getItem('ai_provider');
 
         addMsg("user", text);
         aiInput.value = "";
@@ -81,16 +86,30 @@ if (!desc) {
             const res = await fetch('/api/ask_ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question_id: qId, query: text })
+                body: JSON.stringify({ 
+                    question_id: qId, 
+                    query: text,
+                    api_key: apiKey,     // Send to Flask
+                    provider: provider   // Send to Flask
+                })
             });
             const data = await res.json();
+            
+            // If the key is bad/exhausted, LangGraph will fail
+            if (res.status === 401 || res.status === 403) {
+                document.getElementById(loaderId).innerText = "Error: Invalid API Key. Please configure your engine.";
+                localStorage.removeItem('ai_api_key'); // Delete the bad key
+                checkAIAccess(); // Re-lock the UI
+                openAIEditModal(); // Pop the settings open automatically
+                return;
+            }
+
             document.getElementById(loaderId).remove();
             addMsg("ai", data.answer);
         } catch (e) {
             document.getElementById(loaderId).innerText = "Tutor is currently offline.";
         }
     }
-
     // Helper functions
     function updateSolveUI(isSolved) {
         if (isSolved) {

@@ -9,6 +9,7 @@ from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
 import os
 from datetime import datetime
+import traceback
 load_dotenv()
 app = Flask(__name__)
 def sm2_algorithm(quality, current_interval, current_ease, repetitions):
@@ -175,6 +176,7 @@ def login():
             is_valid = check_password_hash(current_db_password, userpass)
         else:
             # It's an old plaintext demo password!
+            print("")
             is_valid = (current_db_password == userpass)
             if is_valid:
                 needs_upgrade = True # Flag them for an upgrade!
@@ -503,19 +505,45 @@ def toggle_solve():
 @app.route("/api/ask_ai", methods=["POST"])
 def ask_AI():
     data = request.get_json()
-    con = getDBConnection()
-    cur = con.cursor()
-
+    print("HII")
+    # 1. Grab the user's credentials from the frontend payload
+    user_api_key = data.get("api_key")
+    provider = data.get("provider") # 'gemini' or 'openai'
     question_id = data.get("question_id")
     query = data.get("query")
+
+    if not user_api_key:
+        return jsonify({"error": "No API key provided"}), 401
+
+    con = getDBConnection()
+    cur = con.cursor()
+    
+    # Get question context
     query_db = "select description from questions where id = %s "
-    cur.execute(query_db,(question_id,))
+    cur.execute(query_db, (question_id,))
     question_description = cur.fetchone()
-    thread_id = 1
-    config = {"configurable": {"thread_id": thread_id}}
-    response = chatbot.invoke({'user_input': query,'question': question_description},config=config)
-    print(response['bot_response'])
-    return jsonify({"answer": response['bot_response']})
+    
+    # 2. Pass the user's API Key and Provider into the graph
+    # We add 'user_api_key' and 'provider' to the input dictionary
+    config = {"configurable": {"thread_id": 1}}
+    
+    try:
+        print("chtbot")
+        response = chatbot.invoke({
+            'user_input': query,
+            'question': question_description,
+            'user_api_key': user_api_key, # <--- Pass this in!
+            'provider': provider          # <--- Pass this in!
+        }, config=config)
+        print("after")
+        return jsonify({"answer": response['bot_response']})
+        
+    except Exception as e:
+        traceback.print_exc()
+        # Handle invalid keys (returns 401 to trigger frontend lock)
+        if "invalid" in str(e).lower() or "api_key" in str(e).lower():
+            return jsonify({"error": "Invalid API Key"}), 401
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/memory')
 def memory():
@@ -1007,6 +1035,53 @@ def api_consistency():
 
     except Exception as e:
         print(f"Consistency Error: {e}")
+        return jsonify({"error": str(e)}), 500
+    finally:
+        cur.close()
+        con.close()
+import json
+
+@app.route('/api/chat_context', methods=['GET', 'POST'])
+def handle_chat_context():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    con = getDBConnection()
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        if request.method == 'GET':
+            # Fetch the current memory
+            cur.execute("SELECT chat_context FROM users WHERE id = %s", (user_id,))
+            result = cur.fetchone()
+            history = result['chat_context'] if result and result['chat_context'] else []
+            return jsonify({"history": history}), 200
+
+        if request.method == 'POST':
+            data = request.get_json()
+            new_messages = data.get("messages", []) # Expects an array: [user_msg, ai_reply]
+            
+            # Fetch existing history
+            cur.execute("SELECT chat_context FROM users WHERE id = %s", (user_id,))
+            result = cur.fetchone()
+            history = result['chat_context'] if result and result['chat_context'] else []
+            
+            # Append new messages
+            history.extend(new_messages)
+            
+            # THE FIX: Keep the last 20 messages for deep context
+            if len(history) > 20:
+                history = history[-20:]
+                
+            # Save it back to the database
+            cur.execute("UPDATE users SET chat_context = %s WHERE id = %s", (json.dumps(history), user_id))
+            con.commit()
+            return jsonify({"status": "success"}), 200
+
+    except Exception as e:
+        con.rollback()
+        print("Chat Context Error:", e)
         return jsonify({"error": str(e)}), 500
     finally:
         cur.close()

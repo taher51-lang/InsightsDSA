@@ -254,6 +254,10 @@
             </main>
         </div>
     </div>
+    {% include 'ai_modal.html' %}
+
+    <script src="/static/ai_core.js"></script>
+    
 </body>
 <script src="/static/dashboard.js"></script>
 <script>
@@ -284,6 +288,7 @@
             }
         }
     });
+    
 </script>
 <script>
     // Flask injects the value here, then JS saves it locally
