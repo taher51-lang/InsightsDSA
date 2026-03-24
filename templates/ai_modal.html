@@ -18,7 +18,16 @@
           <input type="password" id="ai-api-key" class="form-control bg-light border-0" placeholder="AIzaSy...">
           <div class="form-text text-primary mt-2">Stored strictly in your browser.</div>
         </div>
-        <button class="btn btn-dark w-100 rounded-pill fw-bold py-2" onclick="saveAIToLocalStorage()">Save & Initialize</button>
+        
+        <button class="btn btn-dark w-100 rounded-pill fw-bold py-2 mb-3" onclick="saveAIToLocalStorage()">
+          Save & Initialize
+        </button>
+
+        <div class="text-center">
+            <button type="button" class="btn btn-link text-muted small text-decoration-none" onclick="muteAiModal()">
+                Don't show this again
+            </button>
+        </div>
       </div>
     </div>
   </div>

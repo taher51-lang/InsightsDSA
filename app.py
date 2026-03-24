@@ -10,8 +10,12 @@ from dotenv import load_dotenv
 import os
 from datetime import datetime
 import traceback
+import json
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 load_dotenv()
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 def sm2_algorithm(quality, current_interval, current_ease, repetitions):
     """
     Inputs:
@@ -985,7 +989,7 @@ def get_similar(q_id):
         con.close()
 app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
-    SESSION_COOKIE_SECURE=True, # ngrok uses HTTPS, so this must be True
+    SESSION_COOKIE_SECURE=False, # ngrok uses HTTPS, so this must be True
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_NAME='flask_session' # Give it a specific name
 )
@@ -1039,7 +1043,6 @@ def api_consistency():
     finally:
         cur.close()
         con.close()
-import json
 
 @app.route('/api/chat_context', methods=['GET', 'POST'])
 def handle_chat_context():
