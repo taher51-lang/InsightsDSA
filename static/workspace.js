@@ -105,7 +105,7 @@ if (!desc) {
             }
 
             document.getElementById(loaderId).remove();
-            addMsg("ai", data.answer);
+            addMsg("ai", marked.parse(data.answer));
         } catch (e) {
             document.getElementById(loaderId).innerText = "Tutor is currently offline.";
         }

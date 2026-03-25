@@ -7,6 +7,7 @@ import psycopg2
 from psycopg2 import errors
 from authlib.integrations.flask_client import OAuth
 from dotenv import load_dotenv
+from langchain_core.messages import SystemMessage,AIMessage,HumanMessage
 import os
 from datetime import datetime
 import traceback
@@ -525,7 +526,8 @@ def ask_AI():
     # Get question context
     query_db = "select description from questions where id = %s "
     cur.execute(query_db, (question_id,))
-    question_description = cur.fetchone()
+    row = cur.fetchone()
+    question_description = row[0] if row else "No description Provided"
     
     # 2. Pass the user's API Key and Provider into the graph
     # We add 'user_api_key' and 'provider' to the input dictionary
@@ -534,13 +536,13 @@ def ask_AI():
     try:
         print("chtbot")
         response = chatbot.invoke({
-            'user_input': query,
+            'messages': [HumanMessage(query)],
             'question': question_description,
             'user_api_key': user_api_key, # <--- Pass this in!
             'provider': provider          # <--- Pass this in!
         }, config=config)
         print("after")
-        return jsonify({"answer": response['bot_response']})
+        return jsonify({"answer": response['messages'][-1].content})
         
     except Exception as e:
         traceback.print_exc()
@@ -1044,51 +1046,7 @@ def api_consistency():
         cur.close()
         con.close()
 
-@app.route('/api/chat_context', methods=['GET', 'POST'])
-def handle_chat_context():
-    user_id = session.get("user_id")
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
 
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-
-    try:
-        if request.method == 'GET':
-            # Fetch the current memory
-            cur.execute("SELECT chat_context FROM users WHERE id = %s", (user_id,))
-            result = cur.fetchone()
-            history = result['chat_context'] if result and result['chat_context'] else []
-            return jsonify({"history": history}), 200
-
-        if request.method == 'POST':
-            data = request.get_json()
-            new_messages = data.get("messages", []) # Expects an array: [user_msg, ai_reply]
-            
-            # Fetch existing history
-            cur.execute("SELECT chat_context FROM users WHERE id = %s", (user_id,))
-            result = cur.fetchone()
-            history = result['chat_context'] if result and result['chat_context'] else []
-            
-            # Append new messages
-            history.extend(new_messages)
-            
-            # THE FIX: Keep the last 20 messages for deep context
-            if len(history) > 20:
-                history = history[-20:]
-                
-            # Save it back to the database
-            cur.execute("UPDATE users SET chat_context = %s WHERE id = %s", (json.dumps(history), user_id))
-            con.commit()
-            return jsonify({"status": "success"}), 200
-
-    except Exception as e:
-        con.rollback()
-        print("Chat Context Error:", e)
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        con.close()
 if __name__ == "__main__":
     app.secret_key="THERRANGBHRUCH"
     app.run(debug=True)
