@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     const chatFlow = document.getElementById('chat-flow');
     const aiInput = document.getElementById('ai-input');
     const sendBtn = document.getElementById('send-btn');
+    // Memory State Variables
+    let currentThreadId = null;
+    let savedHistoryData = [];
     const lcLink = document.getElementById('leetcode-link');
     // 1. Initial Load
     try {
@@ -44,6 +47,10 @@ if (!desc) {
         // addMsg("ai", `I'm analyzing **${data.title}**. Need a strategy or a hint?`);
         // Remove Loader
         document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('loading-screen').style.display = 'none';
+        
+        // --- ADD THIS LINE ---
+        loadChatHistory();
     } catch (err) {
         console.error("Error:", err);
         titleEl.innerText = "Error Loading Question";
@@ -65,7 +72,56 @@ if (!desc) {
             solveBtn.disabled = false;
         }
     };
+    // --- NEW: Chat History Loader ---
+    async function loadChatHistory() {
+        try {
+            const res = await fetch(`/api/chat_history/${qId}`);
+            if (!res.ok) return; // No history found, do nothing
 
+            const data = await res.json();
+            savedHistoryData = data.history;
+
+            if (savedHistoryData && savedHistoryData.length > 0) {
+                // 1. Inject the Resume/Start Fresh Banner at the top of the chat
+                const bannerHTML = `
+                    <div id="history-banner" class="alert alert-secondary text-center shadow-sm mb-3" style="font-size: 0.9rem;">
+                        <p class="mb-2 text-dark fw-bold">Past tutoring session found.</p>
+                        <button id="btn-resume" class="btn btn-success btn-sm me-2">Resume Chat</button>
+                        <button id="btn-fresh" class="btn btn-danger btn-sm">Start Fresh</button>
+                    </div>
+                `;
+                chatFlow.insertAdjacentHTML('afterbegin', bannerHTML);
+
+                // 2. Logic for "Resume Chat"
+                document.getElementById('btn-resume').onclick = () => {
+                    document.getElementById('history-banner').remove();
+                    
+                    // Grab the exact thread ID from the database
+                    currentThreadId = savedHistoryData[0].thread_id;
+                    
+                    // Loop through and paint the old messages using YOUR addMsg function!
+                    savedHistoryData.forEach(msg => {
+                        // LangGraph saves it as 'assistant', but your UI expects 'ai'
+                        const uiRole = msg.role === 'assistant' ? 'ai' : 'user';
+                        
+                        // Only parse Markdown if it's the AI speaking
+                        const content = uiRole === 'ai' ? marked.parse(msg.content) : msg.content;
+                        
+                        addMsg(uiRole, content);
+                    });
+                };
+
+                // 3. Logic for "Start Fresh"
+                document.getElementById('btn-fresh').onclick = () => {
+                    document.getElementById('history-banner').remove();
+                    currentThreadId = crypto.randomUUID(); // Brand new timeline
+                    console.log("Started fresh chat:", currentThreadId);
+                };
+            }
+        } catch (err) {
+            console.error("Failed to load history:", err);
+        }
+    }
     // 3. AI Chat Logic
     // 3. AI Chat Logic (Inside static/workspace.js)
     async function askAI() {
@@ -81,7 +137,9 @@ if (!desc) {
         
         const loaderId = "loader-" + Date.now();
         addMsg("ai", '<div class="spinner-border spinner-border-sm text-primary"></div> Analyzing...', loaderId);
-
+        if (!currentThreadId) {
+            currentThreadId = crypto.randomUUID();
+        }
         try {
             const res = await fetch('/api/ask_ai', {
                 method: 'POST',
@@ -90,7 +148,8 @@ if (!desc) {
                     question_id: qId, 
                     query: text,
                     api_key: apiKey,     // Send to Flask
-                    provider: provider   // Send to Flask
+                    provider: provider, 
+                    thread_id: currentThreadId  // Send to Flask
                 })
             });
             const data = await res.json();

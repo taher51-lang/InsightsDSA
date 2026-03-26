@@ -509,48 +509,75 @@ def toggle_solve():
         con.close()
 @app.route("/api/ask_ai", methods=["POST"])
 def ask_AI():
-    data = request.get_json()
-    print("HII")
-    # 1. Grab the user's credentials from the frontend payload
-    user_api_key = data.get("api_key")
-    provider = data.get("provider") # 'gemini' or 'openai'
-    question_id = data.get("question_id")
-    query = data.get("query")
-
-    if not user_api_key:
-        return jsonify({"error": "No API key provided"}), 401
-
     con = getDBConnection()
-    cur = con.cursor()
-    
-    # Get question context
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    data = request.get_json()
+    # 1. Grab the variables from the frontend request
+    query = data.get('query')
+    question_id = data.get('question_id')
+    thread_id = data.get('thread_id')
+    provider = data.get('provider')
+    user_api_key = data.get('api_key')
+
+    # 2. Get user_id from Flask session! 
+    user_id = session.get("user_id")
     query_db = "select description from questions where id = %s "
     cur.execute(query_db, (question_id,))
     row = cur.fetchone()
-    question_description = row[0] if row else "No description Provided"
-    
-    # 2. Pass the user's API Key and Provider into the graph
-    # We add 'user_api_key' and 'provider' to the input dictionary
-    config = {"configurable": {"thread_id": 1}}
-    
+    question_description = row['description'] if row else "No description Provided"
+    # Optional: If you haven't built the login system yet, uncomment the line below to test it safely:
+    # user_id = 1 
+    config = {"configurable": {"thread_id": thread_id}}
+    if not user_id:
+        return jsonify({"error": "Unauthorized. Please log in."}), 401
+
     try:
-        print("chtbot")
+        # 3. Trigger LangGraph
         response = chatbot.invoke({
-            'messages': [HumanMessage(query)],
+            'messages': [HumanMessage(content=query)],
             'question': question_description,
-            'user_api_key': user_api_key, # <--- Pass this in!
-            'provider': provider          # <--- Pass this in!
+            'user_api_key': user_api_key, 
+            'provider': provider          
         }, config=config)
-        print("after")
-        return jsonify({"answer": response['messages'][-1].content})
+        
+        # 4. Extract the clean text response
+        ai_response = response['messages'][-1].content
+
+        # 5. Database Logging (Nested Try/Except)
+        con = getDBConnection()
+        cur = con.cursor()
+
+        try:
+            # Log the User's message
+            cur.execute("""
+                INSERT INTO chat_messages (user_id, question_id, thread_id, role, content)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, question_id, thread_id, 'user', query))
+
+            # Log the AI's response
+            cur.execute("""
+                INSERT INTO chat_messages (user_id, question_id, thread_id, role, content)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (user_id, question_id, thread_id, 'assistant', ai_response))
+            
+            con.commit() # Save the changes!
+
+        except Exception as db_err:
+            print("Failed to save messages to DB:", db_err)
+            con.rollback()
+        finally:
+            cur.close()
+            con.close()
+
+        # 6. Return the answer to the frontend
+        return jsonify({"answer": ai_response})
         
     except Exception as e:
         traceback.print_exc()
         # Handle invalid keys (returns 401 to trigger frontend lock)
-        if "invalid" in str(e).lower() or "api_key" in str(e).lower():
+        if "invalid" in str(e).lower() or "api_key" in str(e).lower() or "auth" in str(e).lower():
             return jsonify({"error": "Invalid API Key"}), 401
         return jsonify({"error": str(e)}), 500
-
 @app.route('/memory')
 def memory():
     user_id = session.get('user_id')
@@ -1045,8 +1072,43 @@ def api_consistency():
     finally:
         cur.close()
         con.close()
+@app.route('/api/chat_history/<int:question_id>', methods=['GET'])
+def get_chat_history(question_id):
+    # 1. Grab the user ID (Adjust this based on how your app handles logins!)
+    user_id = session.get("user_id") 
+    
+    # If you don't have a login system yet for V1, you can temporarily hardcode this to test:
+    # user_id = 1 
 
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
 
+    con = getDBConnection()
+    # 2. RealDictCursor is crucial here. It formats the SQL rows into perfect Python dictionaries.
+    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        # 3. Fetch the messages in chronological order so the chat reads top-to-bottom
+        cur.execute("""
+            SELECT role, content, thread_id 
+            FROM chat_messages 
+            WHERE user_id = %s AND question_id = %s 
+            ORDER BY created_at ASC
+        """, (user_id, question_id))
+        
+        history = cur.fetchall()
+        
+        # 4. Return the data as a clean JSON package for the frontend
+        return jsonify({"history": history}), 200
+
+    except Exception as e:
+        print("Chat History Error:", e)
+        return jsonify({"error": "Failed to fetch history"}), 500
+        
+    finally:
+        # 5. Always close your connections!
+        cur.close()
+        con.close()
 if __name__ == "__main__":
     app.secret_key="THERRANGBHRUCH"
     app.run(debug=True)
