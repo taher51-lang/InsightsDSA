@@ -182,7 +182,7 @@ if (!desc) {
 
     function addMsg(role, content, id = null) {
         const div = document.createElement('div');
-        div.className = `p-3 rounded-4 mb-2 shadow-sm ${role === 'user' ? 'bg-primary text-white align-self-end w-75' : 'bg-dark border border-secondary text-light w-85'}`;
+        div.className = `p-3 rounded-4 mb-2 shadow-sm bg-white ${role === 'user' ? 'text-dark align-self-end w-75' : 'border border-secondary text-dark  w-85'}`;
         if (id) div.id = id;
         div.innerHTML = content;
         chatFlow.appendChild(div);

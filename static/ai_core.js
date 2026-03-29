@@ -3,7 +3,9 @@
 /**
  * 1. DEFINE FUNCTIONS FIRST (Hoisting Safety)
  */
-
+// Global state for LangGraph Memory
+let currentThreadId = null;
+let savedHistoryData = [];
 function checkAIAccess() {
     console.log("Running checkAIAccess...");
     const apiKey = localStorage.getItem('ai_api_key');

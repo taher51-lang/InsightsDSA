@@ -196,8 +196,13 @@ def login():
             print(f"Security Upgrade Complete: Hashed password for user '{username}'")
         # 4. Set Session and Log Them In
         session['user_id'] = result['id'] 
-        session['username'] = result['username']    
-        return jsonify({"message": "Login successful", "name": result['name']}), 200
+        session['user_name'] = result['username']  
+        if result["name"]:  
+            return jsonify({"message": "Login successful", "name": result['name']}), 200
+        else:
+            return jsonify({"message": "Login successful"}), 200
+
+
 
     except Exception as e:
         print("Database Error in login:", e)
@@ -261,7 +266,9 @@ def register():
 @app.route("/dashboard")
 def dashboard():
     user_id = session.get('user_id')
-
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
@@ -383,8 +390,12 @@ def getStreak(user_id,con,cur):
     return total_solved,streak
 
 @app.route("/api/user_stats")
+
 def get_user_stats():
     user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
@@ -405,6 +416,9 @@ def questions_page(concept_id):
 @app.route("/api/get_questions/<int:concept_id>")
 def get_questions_api(concept_id):
     user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     
@@ -427,6 +441,9 @@ def get_questions_api(concept_id):
 @app.route("/api/get_question_details/<int:q_id>")
 def get_question_details(q_id):
     user_id = session.get("user_id")
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
     con = getDBConnection()
@@ -454,6 +471,9 @@ def get_question_details(q_id):
 @app.route("/api/toggle_solve", methods=["POST"])
 def toggle_solve():
     user_id = session.get("user_id")
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
         
@@ -509,6 +529,10 @@ def toggle_solve():
         con.close()
 @app.route("/api/ask_ai", methods=["POST"])
 def ask_AI():
+    user_id = session.get("user_id")
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
     data = request.get_json()
@@ -520,7 +544,6 @@ def ask_AI():
     user_api_key = data.get('api_key')
 
     # 2. Get user_id from Flask session! 
-    user_id = session.get("user_id")
     query_db = "select description from questions where id = %s "
     cur.execute(query_db, (question_id,))
     row = cur.fetchone()
@@ -581,10 +604,8 @@ def ask_AI():
 @app.route('/memory')
 def memory():
     user_id = session.get('user_id')
-    
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    
     try:
         # --- QUERY 1: FETCH REVIEW QUEUE ---
         # Changed c.name -> c.title
@@ -601,9 +622,7 @@ def memory():
             WHERE up.user_id = %s AND up.next_review <= CURRENT_DATE
             ORDER BY up.next_review ASC
         """, (user_id,))
-        
         review_queue = cur.fetchall()
-        
         # --- QUERY 2: FETCH STATS ---
         # Changed c.name -> c.title here too
         cur.execute("""
@@ -616,26 +635,20 @@ def memory():
             LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
             GROUP BY c.id, c.title          -- <--- FIXED: Group by title
         """, (user_id,))
-        
         stats_raw = cur.fetchall()
         stats = []
-
         # Process Stats
         for row in stats_raw:
             name = row['concept_title'] 
             solved = row['solved_count']
             ease = float(row['avg_ease'])
-            
             if solved == 0: signal = 0
             elif ease >= 2.6: signal = 4
             elif ease >= 2.1: signal = 3
             elif ease >= 1.5: signal = 2
             else: signal = 1
-            
             stats.append({"name": name, "solved": solved, "signal": signal})
-
         return render_template('retention.html', queue=review_queue, stats=stats)
-
     except Exception as e:
         print(f"Error: {e}")
         return "Database Error", 500
@@ -647,16 +660,14 @@ def memory():
 def api_review():
     # 1. Security Check
     user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     # 2. Get Data from Frontend
     question_id = request.form.get('question_id')
     quality = int(request.form.get('quality')) # 0, 3, 4, 5
-
     con = getDBConnection()
     cur = con.cursor()
-
     try:
         # 3. Fetch Current Stats
         cur.execute("""
@@ -664,17 +675,13 @@ def api_review():
             FROM user_progress 
             WHERE user_id = %s AND question_id = %s
         """, (user_id, question_id))
-        
         record = cur.fetchone()
-        
         # Defaults (Safety net if row exists but values are null)
         curr_ivl = record[0] if record and record[0] else 1
         curr_ease = record[1] if record and record[1] else 2.5
         curr_reps = record[2] if record and record[2] else 0
-
         # 4. Run the Algorithm
         new_ivl, new_ease, new_reps, new_date = sm2_algorithm(quality, curr_ivl, curr_ease, curr_reps)
-
         # 5. Update Database
         cur.execute("""
             UPDATE user_progress 
@@ -709,6 +716,9 @@ def api_review():
 @app.route('/api/roadmap-data')
 def roadmap_data():
     user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     con = getDBConnection()
     cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
@@ -825,6 +835,9 @@ def getLogs(user_id, cur):
 def api_profile():
     # 1. Grab ID (fallback to 1 for testing if session expires)
     user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     
     # 2. Open Tools
     con = getDBConnection()
@@ -862,8 +875,9 @@ def api_profile():
 def change_password():
     # 1. Ensure the user is logged in
     user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Unauthorized. Please log in."}), 401
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
 
     data = request.get_json()
     current_password = data.get('current_password')
@@ -974,6 +988,9 @@ def api_journey():
 @app.route("/question/<int:q_id>")
 def question_page(q_id):
     user_id = session.get("user_id")
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     if not user_id:
         return redirect("/login")
     
@@ -1092,7 +1109,13 @@ def get_chat_history(question_id):
         cur.execute("""
             SELECT role, content, thread_id 
             FROM chat_messages 
-            WHERE user_id = %s AND question_id = %s 
+            WHERE thread_id = (
+                SELECT thread_id 
+                FROM chat_messages 
+                WHERE user_id = %s AND question_id = %s 
+                ORDER BY created_at
+                LIMIT 1
+            )
             ORDER BY created_at ASC
         """, (user_id, question_id))
         
@@ -1110,5 +1133,5 @@ def get_chat_history(question_id):
         cur.close()
         con.close()
 if __name__ == "__main__":
-    app.secret_key="THERRANGBHRUCH"
+    app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)

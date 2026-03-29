@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Inter', sans-serif; }
+        .ai-card { background: linear-gradient(135_deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 15px; }
+        .concept-card { background: white; border-radius: 12px; border-left: 5px solid #0d6efd; margin-bottom: 15px; }
+        .question-row { font-size: 0.9rem; padding: 10px; border-bottom: 1px solid #eee; transition: background 0.2s; }
+        .question-row:hover { background-color: #f8f9fa; }
+        .chart-container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    
+    <div class="mb-5">
+        <h2 class="fw-bold">Insights Dojo <span class="fs-5 text-muted fw-normal">/ Mastery Overview</span></h2>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card ai-card shadow-sm p-4">
+                <h5 class="fw-bold mb-2">🤖 AI Diagnostic</h5>
+                <p id="ai-diagnostic" class="m-0" style="opacity: 0.9;">
+                    "Your Array logic is elite (Top 5%), but your DP mastery is lagging. You tend to ask for hints 40% more often on Recursive problems. Focus on 'Memoization' basics this week."
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card ai-card shadow-sm p-4" style="background: linear-gradient(135_deg, #11998e 0%, #38ef7d 100%);">
+                <h5 class="fw-bold mb-2">🎯 Interview Predictor</h5>
+                <p id="ai-predictor" class="m-0" style="opacity: 0.9;">
+                    "Strong candidate for Mid-Level Backend roles. You will likely breeze through Amazon's 'Topological Sort' questions but struggle with Meta's 'Sliding Window' optimizations."
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="chart-container text-center">
+                <h6 class="fw-bold mb-3">Skill DNA</h6>
+                <canvas id="radarChart"></canvas>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <h5 class="fw-bold mb-4">Mastery by Concept</h5>
+            
+            <div class="accordion" id="conceptAccordion">
+                <div class="accordion-item concept-card shadow-sm">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#arrays">
+                            <div class="d-flex justify-content-between w-100 pe-3">
+                                <span><strong>Arrays & Hashing</strong> (12 Solved)</span>
+                                <span class="text-success fw-bold">92% Mastery</span>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="arrays" class="accordion-collapse collapse" data-bs-parent="#conceptAccordion">
+                        <div class="accordion-body p-0">
+                            <div class="question-row d-flex justify-content-between px-4">
+                                <span>Two Sum</span>
+                                <span class="text-muted">12m | 0 Hints | 100% Autonomy</span>
+                            </div>
+                            <div class="question-row d-flex justify-content-between px-4">
+                                <span>Contains Duplicate</span>
+                                <span class="text-muted">5m | 0 Hints | 100% Autonomy</span>
+                            </div>
+                            <div class="question-row d-flex justify-content-between px-4">
+                                <span>Product of Array Except Self</span>
+                                <span class="text-muted">25m | 2 Hints | 80% Autonomy</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item concept-card shadow-sm" style="border-left-color: #dc3545;">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#dp">
+                            <div class="d-flex justify-content-between w-100 pe-3">
+                                <span><strong>Dynamic Programming</strong> (2 Solved)</span>
+                                <span class="text-danger fw-bold">15% Mastery</span>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="dp" class="accordion-collapse collapse" data-bs-parent="#conceptAccordion">
+                        <div class="accordion-body p-0">
+                            <div class="question-row d-flex justify-content-between px-4">
+                                <span>Climbing Stairs</span>
+                                <span class="text-muted">45m | 5 Hints | 30% Autonomy</span>
+                            </div>
+                            <div class="question-row d-flex justify-content-between px-4">
+                                <span>House Robber</span>
+                                <span class="text-muted">1h 10m | 8 Hints | 20% Autonomy</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    new Chart(document.getElementById('radarChart'), {
+        type: 'radar',
+        data: {
+            labels: ['Arrays', 'Strings', 'DP', 'Trees', 'Graphs', 'Recursion'],
+            datasets: [{
+                data: [90, 75, 15, 45, 30, 60],
+                fill: true,
+                backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                borderColor: 'rgb(102, 126, 234)',
+                pointBackgroundColor: 'rgb(102, 126, 234)'
+            }]
+        },
+        options: { plugins: { legend: { display: false } }, scales: { r: { suggestMin: 0, suggestMax: 100 } } }
+    });
+</script>
+</body>
+</html>
