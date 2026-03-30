@@ -467,6 +467,22 @@ def get_question_details(q_id):
     finally:
         cur.close()
         con.close()
+def log_to_activity(user_id, q_id, action_type, confidence, time_seconds):
+    """The Single Source of Truth for Dojo Data."""
+    # 1. Background AI Analysis (Silent)
+    ai_score = None
+    clarity=None
+    try:
+        con = getDBConnection()
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO activity_log 
+            (user_id, question_id, action, confidence_level, time_spent_seconds, ai_bifurcated_score,clarity_of_thought) 
+            VALUES (%s, %s, %s, %s, %s, %s,%s)
+        """, (user_id, q_id, action_type, confidence, time_seconds, ai_score,clarity))
+        con.commit()
+    except Exception as e:
+        print(f"activity table Log Error: {e}")
 
 @app.route("/api/toggle_solve", methods=["POST"])
 def toggle_solve():
@@ -477,6 +493,8 @@ def toggle_solve():
         
     data = request.get_json()
     q_id = data.get("question_id")
+    confidence = data.get("confidence")
+    time_spent = data.get("time_spent")
     con = getDBConnection()
     cur = con.cursor()
     
@@ -504,13 +522,12 @@ def toggle_solve():
                 (user_id, question_id, solved_at, "interval", ease_factor, repetitions, next_review, is_solved) 
                 VALUES (%s, %s, NOW(), 1, 2.5, 0, %s, TRUE)
             """
+            action="solved"
             cur.execute(query, (user_id, q_id, tomorrow))
             # NEW: Drop the 'solved' event into the Activity Log!
-            cur.execute("""
-                INSERT INTO activity_log (user_id, question_id, action) 
-                VALUES (%s, %s, 'solved')
-            """, (user_id, q_id))
-            action = "solved"
+            log_to_activity(user_id,q_id,action,confidence,time_spent)
+            print(time_spent)
+            print("here")
         con.commit() 
         return jsonify({"status": "success", "action": action})
     except Exception as e:
@@ -654,8 +671,11 @@ def api_review():
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
     # 2. Get Data from Frontend
-    question_id = request.form.get('question_id')
-    quality = int(request.form.get('quality')) # 0, 3, 4, 5
+    data = request.get_json()
+    question_id = data.get('question_id')
+    quality = int(data.get('quality', 0))  # 0, 3, 4, 5
+    # Get time from 'time_spent' (matching the JS payload)
+    time_seconds = int(data.get('time_spent', 0))
     con = getDBConnection()
     cur = con.cursor()
     try:
@@ -686,10 +706,10 @@ def api_review():
         # ... your existing code that updates user_progress ...
 
 # NEW: Drop a record into the activity log
-        cur.execute("""
-            INSERT INTO activity_log (user_id, question_id, action) 
-            VALUES (%s, %s, %s)
-            """, (user_id, question_id, 'reviewed')) # Change 'solved' to 'reviewed' for your review route
+        action = "reviewd"
+        log_to_activity(user_id,question_id,action,quality,time_seconds)
+
+        # Change 'solved' to 'reviewed' for your review route
 # Make sure you con.commit() after this!
         con.commit()
         return jsonify({"status": "success", "new_date": str(new_date)})
