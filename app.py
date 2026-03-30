@@ -1165,8 +1165,6 @@ def get_chat_history(question_id):
         # 5. Always close your connections!
         cur.close()
         con.close()
-from langchain_core.messages import HumanMessage, AIMessage
-from app import getDBConnection 
 
 def fetch_session_transcript(user_id, q_id):
     """
@@ -1176,7 +1174,6 @@ def fetch_session_transcript(user_id, q_id):
     try:
         con = getDBConnection()
         cur = con.cursor()
-
         # We grab all messages for this user/question pair
         # typically filtered by the most recent session window
         cur.execute("""
@@ -1186,7 +1183,6 @@ def fetch_session_transcript(user_id, q_id):
             ORDER BY id ASC
         """, (user_id, q_id))
         rows = cur.fetchall()
-        
         # Mapping to LangChain objects
         transcript = []
         for role, content in rows:
@@ -1194,12 +1190,107 @@ def fetch_session_transcript(user_id, q_id):
                 transcript.append(HumanMessage(content=content))
             else:
                 transcript.append(AIMessage(content=content))
-        
         return transcript
-
     except Exception as e:
         print(f"Database Retrieval Error: {e}")
         return []
+def get_skill_matrix_stats(user_id):
+    con = getDBConnection()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            c.title AS concept_title,
+            COUNT(al.id) AS solved_count,
+            AVG(al.ai_bifurcated_score) AS avg_mastery,
+            AVG(al.clarity_of_thought) AS avg_clarity
+        FROM activity_log al
+        JOIN questions q ON al.question_id = q.id
+        JOIN concepts c ON q.concept_id = c.id
+        WHERE al.user_id = %s
+        GROUP BY c.title
+    """, (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    con.close()
+    # Scaling 0-5 to 0-100 for the sleek Radar UI
+    return [{
+        "label": r[0],
+        "count": r[1],
+        "mastery": round(float(r[2] or 0) * 20, 1), 
+        "clarity": round(float(r[3] or 0) * 20, 1)  
+    } for r in rows]
+def get_concept_breakdown(user_id):
+    con = getDBConnection()
+    cur = con.cursor()
+    try:
+        cur.execute("""
+            SELECT 
+                c.title AS concept,
+                q.title AS q_title,
+                al.time_spent_seconds,
+                al.confidence_level
+            FROM activity_log al
+            JOIN questions q ON al.question_id = q.id
+            JOIN concepts c ON q.concept_id = c.id
+            WHERE al.user_id = %s
+            ORDER BY c.title, al.created_at DESC
+        """, (user_id,))
+        rows = cur.fetchall()
+        grouped = {}
+        for concept, q_title, time_sec, conf in rows:
+            # 1. Fallbacks for missing text data
+            concept_name = concept if concept else "Uncategorized"
+            question_name = q_title if q_title else "Unknown Question"
+            # 2. NULL-Safety for Math (This stops the crashes!)
+            safe_time = int(time_sec) if time_sec is not None else 0
+            safe_conf = float(conf) if conf is not None else 0.0
+            # Initialize the group
+            if concept_name not in grouped:
+                grouped[concept_name] = []
+            # Format time nicely (Shows "< 1m" if they solved it super fast)
+            mins = safe_time // 60
+            time_display = f"{mins}m" if mins > 0 else "< 1m"
+            grouped[concept_name].append({
+                "title": question_name,
+                "time": time_display,
+                "autonomy": f"{int(safe_conf * 20)}%" 
+            })
+        return grouped
+    except Exception as e:
+        # If the SQL fails, print the exact error so you can debug it, 
+        # but return an empty dictionary so the UI doesn't completely break!
+        print(f"💥 Error in get_concept_breakdown: {e}")
+        return {} 
+    finally:
+        # This guarantees the connection closes EVEN IF the code crashes
+        cur.close()
+        con.close()
+@app.route('/api/insights/matrix', methods=['GET'])
+def get_insights_data():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    print("HIIIIII")
+    # 1. Fetch the Radar Chart Data
+    matrix_stats = get_skill_matrix_stats(user_id)
+    print("after HIII")
+    # 2. Fetch the Accordion List Data
+    concept_history = get_concept_breakdown(user_id)
+    print("yup.error's here")
+    # (Optional) 3. Fetch the AI Diagnostic Summary from DB if you cached it
+    # ai_summary = fetch_latest_diagnostic(user_id)
+
+    return jsonify({
+        "status": "success",
+        "matrix_stats": matrix_stats,
+        "concept_history": concept_history
+    })
+@app.route('/insights')
+def insights_page():
+    # Security: Kick them to login if they aren't logged in
+    
+    # Render the LogicLens page
+    return render_template('insights.html', name=session.get('name', ''))
 if __name__ == "__main__":
     app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)

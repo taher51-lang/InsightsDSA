@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicLens | Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Inter', sans-serif; }
+        .ai-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 15px; }
+        .concept-card { background: white; border-radius: 12px; border-left: 5px solid #0d6efd; margin-bottom: 15px; }
+        .question-row { font-size: 0.9rem; padding: 10px; border-bottom: 1px solid #eee; transition: background 0.2s; }
+        .question-row:hover { background-color: #f8f9fa; }
+        .chart-container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .loading-overlay { display: flex; justify-content: center; align-items: center; height: 300px; }
+        
+        /* The V1 Compromise: Stop the accordion from stretching to infinity */
+        .accordion-body-scroll { max-height: 300px; overflow-y: auto; overflow-x: hidden; }
+        .accordion-body-scroll::-webkit-scrollbar { width: 6px; }
+        .accordion-body-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    
+    <div class="mb-5 d-flex justify-content-between align-items-center">
+        <h2 class="fw-bold">LogicLens <span class="fs-5 text-muted fw-normal">/ Skill Matrix</span></h2>
+        <span id="global-status" class="badge bg-secondary">Fetching data...</span>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card ai-card shadow-sm p-4">
+                <h5 class="fw-bold mb-2">🤖 AI Diagnostic</h5>
+                <p id="ai-diagnostic" class="m-0" style="opacity: 0.9;">
+                    Loading your latest diagnostic profile...
+                </p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card ai-card shadow-sm p-4" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
+                <h5 class="fw-bold mb-2">🎯 Interview Predictor</h5>
+                <p id="ai-predictor" class="m-0" style="opacity: 0.9;">
+                    Calculating role readiness...
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="chart-container text-center h-100 p-4">
+                <h6 class="fw-bold mb-3">Skill DNA</h6>
+                <div style="position: relative; height: 350px; width: 100%; display: flex; justify-content: center;">
+                    <div id="chart-loading" class="loading-overlay w-100">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                    <canvas id="radarChart" style="display: none;"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <h5 class="fw-bold mb-4">Mastery by Concept</h5>
+            <div id="accordion-loading" class="loading-overlay">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            <div class="accordion" id="conceptAccordion" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", async () => {
+        await loadLogicLensData();
+    });
+
+    async function loadLogicLensData() {
+        try {
+            const response = await fetch('/api/insights/matrix');
+            const data = await response.json();
+
+            if (data.status === 'success') {
+                document.getElementById('global-status').className = 'badge bg-success';
+                document.getElementById('global-status').innerText = 'Live';
+
+                renderRadarChart(data.matrix_stats);
+                renderAccordion(data.concept_history, data.matrix_stats);
+
+                document.getElementById('ai-diagnostic').innerText = "Data loaded. Analyzing your recent problem-solving patterns to determine core strengths...";
+                document.getElementById('ai-predictor').innerText = "Sufficient data points gathered. Preparing readiness score for Tier-1 tech interviews...";
+            } else {
+                showError("Failed to load data.");
+            }
+        } catch (error) {
+            console.error(error);
+            showError("Server error.");
+        }
+    }
+
+    function renderRadarChart(stats) {
+        document.getElementById('chart-loading').style.display = 'none';
+        const canvas = document.getElementById('radarChart');
+        canvas.style.display = 'block';
+
+        const labels = stats.map(s => s.label);
+        const masteryData = stats.map(s => s.mastery);
+
+        new Chart(canvas, {
+            type: 'radar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Mastery Score (%)',
+                    data: masteryData,
+                    fill: true,
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderColor: 'rgb(102, 126, 234)',
+                    pointBackgroundColor: 'rgb(102, 126, 234)'
+                }]
+            },
+            // Radar Chart Config Fix
+            options: { 
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } }, 
+                scales: { 
+                    r: { 
+                        min: 0, 
+                        max: 100,
+                        ticks: { stepSize: 20, display: false },
+                        pointLabels: { font: { size: 13, weight: 'bold' }, color: '#495057' }
+                    } 
+                } 
+            }
+        });
+    }
+
+    function renderAccordion(historyMap, stats) {
+        document.getElementById('accordion-loading').style.display = 'none';
+        const container = document.getElementById('conceptAccordion');
+        container.style.display = 'block';
+        container.innerHTML = ''; 
+
+        if (Object.keys(historyMap).length === 0) {
+            container.innerHTML = `<div class="alert alert-info">Solve some problems to generate your mastery data!</div>`;
+            return;
+        }
+
+        let index = 0;
+        for (const [conceptName, questions] of Object.entries(historyMap)) {
+            const statData = stats.find(s => s.label === conceptName);
+            const masteryScore = statData ? statData.mastery : 0;
+            const solveCount = questions.length;
+
+            let colorClass = 'text-success';
+            let borderColor = '#0d6efd'; 
+            if (masteryScore < 40) { colorClass = 'text-danger'; borderColor = '#dc3545'; }
+            else if (masteryScore < 70) { colorClass = 'text-warning'; borderColor = '#ffc107'; }
+
+            const collapseId = `collapse-${index}`;
+
+            let rowsHtml = '';
+            questions.forEach(q => {
+                rowsHtml += `
+                    <div class="question-row d-flex justify-content-between px-4">
+                        <span>${q.title}</span>
+                        <span class="text-muted">${q.time} | ${q.autonomy} Autonomy</span>
+                    </div>
+                `;
+            });
+
+            const itemHtml = `
+                <div class="accordion-item concept-card shadow-sm" style="border-left-color: ${borderColor};">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+                            <div class="d-flex justify-content-between w-100 pe-3">
+                                <span><strong>${conceptName}</strong> (${solveCount} Solved)</span>
+                                <span class="${colorClass} fw-bold">${masteryScore}% Mastery</span>
+                            </div>
+                        </button>
+                    </h2>
+                    <div id="${collapseId}" class="accordion-collapse collapse" data-bs-parent="#conceptAccordion">
+                        <div class="accordion-body p-0 accordion-body-scroll">
+                            ${rowsHtml}
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML += itemHtml;
+            index++;
+        }
+    }
+
+    function showError(msg) {
+        document.getElementById('global-status').className = 'badge bg-danger';
+        document.getElementById('global-status').innerText = msg;
+        document.getElementById('chart-loading').innerHTML = '<p class="text-muted">No data available.</p>';
+        document.getElementById('accordion-loading').innerHTML = '<p class="text-muted">No data available.</p>';
+    }
+</script>
+</body>
+</html>
