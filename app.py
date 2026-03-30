@@ -474,8 +474,6 @@ def toggle_solve():
     if 'user_id' not in session:
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
         
     data = request.get_json()
     q_id = data.get("question_id")
@@ -499,7 +497,7 @@ def toggle_solve():
         else:
             # OPTION B: First Solve (Initialize SRS Defaults)
             tomorrow = date.today() + timedelta(days=1)
-            
+
             # Note the double quotes around "interval" for Postgres!
             query = """
                 INSERT INTO user_progress 
@@ -507,23 +505,18 @@ def toggle_solve():
                 VALUES (%s, %s, NOW(), 1, 2.5, 0, %s, TRUE)
             """
             cur.execute(query, (user_id, q_id, tomorrow))
-            
             # NEW: Drop the 'solved' event into the Activity Log!
             cur.execute("""
                 INSERT INTO activity_log (user_id, question_id, action) 
                 VALUES (%s, %s, 'solved')
             """, (user_id, q_id))
-            
             action = "solved"
-            
         con.commit() 
         return jsonify({"status": "success", "action": action})
-        
     except Exception as e:
         con.rollback() 
         print(f"Error: {e}") # Good for debugging
         return jsonify({"error": str(e)}), 500
-        
     finally:
         cur.close()
         con.close()
@@ -542,7 +535,6 @@ def ask_AI():
     thread_id = data.get('thread_id')
     provider = data.get('provider')
     user_api_key = data.get('api_key')
-
     # 2. Get user_id from Flask session! 
     query_db = "select description from questions where id = %s "
     cur.execute(query_db, (question_id,))
@@ -553,7 +545,6 @@ def ask_AI():
     config = {"configurable": {"thread_id": thread_id}}
     if not user_id:
         return jsonify({"error": "Unauthorized. Please log in."}), 401
-
     try:
         # 3. Trigger LangGraph
         response = chatbot.invoke({
@@ -655,7 +646,6 @@ def memory():
     finally:
         cur.close()
         con.close()
-
 @app.route('/api/review', methods=['POST'])
 def api_review():
     # 1. Security Check
@@ -699,7 +689,7 @@ def api_review():
         cur.execute("""
             INSERT INTO activity_log (user_id, question_id, action) 
             VALUES (%s, %s, %s)
-            """, (user_id, question_id, 'solved')) # Change 'solved' to 'reviewed' for your review route
+            """, (user_id, question_id, 'reviewed')) # Change 'solved' to 'reviewed' for your review route
 # Make sure you con.commit() after this!
         con.commit()
         return jsonify({"status": "success", "new_date": str(new_date)})
@@ -759,7 +749,6 @@ def getUserInfo(user_id,cur):
         FROM users 
         WHERE id = %s
     """, (user_id,))
-    
     # 2. Fetch the single row
     user_row = cur.fetchone()
     print(user_row)
@@ -767,7 +756,6 @@ def getUserInfo(user_id,cur):
     if not user_row:
         print("Hiiiii")
         return None
-        
     # 4. Map the raw SQL tuple into a clean Python dictionary
     # (Matches the exact order of your SELECT statement above)
     user_data = {
@@ -793,12 +781,9 @@ def getLogs(user_id, cur):
         ORDER BY up.solved_at DESC 
         LIMIT 15
     """, (user_id,))
-    
     logs_data = cur.fetchall()
-    
     # Get today's date to compare against
     today = datetime.now().date()
-    
     for log in logs_data:
         # --- 1. Dynamic Colors ---
         difficulty = log.get('difficulty', '').lower()
@@ -808,12 +793,10 @@ def getLogs(user_id, cur):
             log['color'] = 'warning'
         else:
             log['color'] = 'danger'
-            
         # --- 2. Relative Time Math ---
         # Convert the SQL timestamp to a simple date
         solved_date = log['solved_at'].date()
         days_ago = (today - solved_date).days
-        
         if days_ago == 0:
             log['date'] = "Today"
         elif days_ago == 1:
