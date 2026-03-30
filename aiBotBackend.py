@@ -36,7 +36,7 @@ def ChatNode(state: chatState) -> chatState:
     elif provider == 'grok':
         model = ChatXAI(
             model="grok-3", 
-            openai_api_key=user_key
+            xai_api_key=user_key
         )
     else:
         # Fallback or error handling

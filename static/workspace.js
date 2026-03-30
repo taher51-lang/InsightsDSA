@@ -112,7 +112,9 @@ if (!desc) {
         const success = await runToggleSolve({
             action: 'solve',
             confidence: selectedConf,
-            time_spent: minutes * 60 // Converting minutes to seconds for the DB
+            time_spent: minutes * 60 ,
+            provider:localStorage.getItem("ai_provider"), // Converting to seconds for the backend
+            user_api_key:localStorage.getItem("ai_api_key")// Converting minutes to seconds for the DB
         });
 
         if (success) {

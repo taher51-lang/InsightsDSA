@@ -258,7 +258,9 @@ async function submitReview(quality) {
     const payload = {
         question_id: currentReviewId,
         quality: quality,
-        time_spent: minutes * 60 // Converting to seconds for the backend
+        time_spent: minutes * 60,
+        provider:localStorage.getItem("ai_provider"), // Converting to seconds for the backend
+        user_api_key:localStorage.getItem("ai_api_key")
     };
 
     try {

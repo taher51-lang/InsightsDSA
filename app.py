@@ -13,6 +13,7 @@ from datetime import datetime
 import traceback
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
+from analystBot import Analyst
 
 load_dotenv()
 app = Flask(__name__)
@@ -467,12 +468,39 @@ def get_question_details(q_id):
     finally:
         cur.close()
         con.close()
-def log_to_activity(user_id, q_id, action_type, confidence, time_seconds):
+def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key,provider):
     """The Single Source of Truth for Dojo Data."""
     # 1. Background AI Analysis (Silent)
     ai_score = None
     clarity=None
+    
     try:
+        # 1. Fetch Question Details (for the AI context)
+        # Assuming you have a function to get title/desc from DB
+        con = getDBConnection()        
+        cur = con.cursor()
+        cur.execute("SELECT description FROM questions WHERE id = %s", (q_id,))
+        row = cur.fetchone()
+        if not row:
+            print("question details not found")
+        else:
+            q_details = row[0]
+        # 2. Fetch Chat History (Transcript)
+        # Using the retriever we built earlier
+        print("Good")
+        transcript = fetch_session_transcript(user_id, q_id)
+        cur.close()
+        con.close()
+        # 3. Only analyze if the user actually engaged (Filter)
+        if transcript and len(transcript) >= 4 and api_key:
+            analyst = Analyst(api_key, provider)
+            # Invoke the logic
+            analysis = analyst.get_response(q_details, transcript)
+            print("HOOOOOO")
+            print(analysis)
+            if analysis:
+                ai_score = analysis.mastery_score
+                clarity = analysis.clarity_score
         con = getDBConnection()
         cur = con.cursor()
         cur.execute("""
@@ -495,6 +523,8 @@ def toggle_solve():
     q_id = data.get("question_id")
     confidence = data.get("confidence")
     time_spent = data.get("time_spent")
+    api_key = data.get("user_api_key")
+    provider = data.get("provider")
     con = getDBConnection()
     cur = con.cursor()
     
@@ -525,7 +555,7 @@ def toggle_solve():
             action="solved"
             cur.execute(query, (user_id, q_id, tomorrow))
             # NEW: Drop the 'solved' event into the Activity Log!
-            log_to_activity(user_id,q_id,action,confidence,time_spent)
+            log_to_activity(user_id,q_id,action,confidence,time_spent,api_key,provider)
             print(time_spent)
             print("here")
         con.commit() 
@@ -1135,6 +1165,41 @@ def get_chat_history(question_id):
         # 5. Always close your connections!
         cur.close()
         con.close()
+from langchain_core.messages import HumanMessage, AIMessage
+from app import getDBConnection 
+
+def fetch_session_transcript(user_id, q_id):
+    """
+    Pulls the full conversation for a specific user and question.
+    Returns a list of HumanMessage and AIMessage objects.
+    """
+    try:
+        con = getDBConnection()
+        cur = con.cursor()
+
+        # We grab all messages for this user/question pair
+        # typically filtered by the most recent session window
+        cur.execute("""
+            SELECT role, content 
+            FROM chat_messages 
+            WHERE user_id = %s AND question_id = %s
+            ORDER BY id ASC
+        """, (user_id, q_id))
+        rows = cur.fetchall()
+        
+        # Mapping to LangChain objects
+        transcript = []
+        for role, content in rows:
+            if role == 'user':
+                transcript.append(HumanMessage(content=content))
+            else:
+                transcript.append(AIMessage(content=content))
+        
+        return transcript
+
+    except Exception as e:
+        print(f"Database Retrieval Error: {e}")
+        return []
 if __name__ == "__main__":
     app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)
