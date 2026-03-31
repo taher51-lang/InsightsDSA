@@ -11,6 +11,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Memory State Variables
     let currentThreadId = null;
     let savedHistoryData = [];
+    const solveModalEl = document.getElementById('solveModal');
+    const solveModal = new bootstrap.Modal(solveModalEl);
+    const modalSubmitBtn = document.getElementById('modal-submit-btn');
+    const timeInput = document.getElementById('modal-time-input');
+    let selectedConf = null;
     const lcLink = document.getElementById('leetcode-link');
     // 1. Initial Load
     try {
@@ -56,22 +61,90 @@ if (!desc) {
         titleEl.innerText = "Error Loading Question";
     }
     // 2. Toggle Solve Logic
+   // --- Updated: High-Contrast Selection for White Theme ---
+    document.querySelectorAll('.conf-option').forEach(btn => {
+        btn.onclick = () => {
+            // 1. Reset all buttons to the "Outline" state
+            document.querySelectorAll('.conf-option').forEach(b => {
+                b.classList.remove('active', 'btn-danger', 'btn-warning', 'btn-primary', 'btn-success', 'text-white');
+            });
+
+            // 2. Fill the clicked button with its specific semantic color
+            const val = btn.dataset.val;
+            if (val == 0) btn.classList.add('active', 'btn-danger', 'text-white');
+            if (val == 3) btn.classList.add('active', 'btn-warning', 'text-white');
+            if (val == 4) btn.classList.add('active', 'btn-primary', 'text-white');
+            if (val == 5) btn.classList.add('active', 'btn-success', 'text-white');
+
+            selectedConf = val; // Store 0, 3, 4, or 5
+            validateModal();    // Enable the submit button
+        };
+    });
+    function validateModal() {
+        const timeVal = parseInt(timeInput.value);
+        if (selectedConf !== null && timeVal > 0) {
+            modalSubmitBtn.classList.remove('disabled');
+            modalSubmitBtn.classList.replace('btn-light', 'btn-success');
+        } else {
+            modalSubmitBtn.classList.add('disabled');
+        }
+    }
+    timeInput.oninput = validateModal;
     solveBtn.onclick = async () => {
+        // BRANCHING LOGIC:
+        // Only trigger modal if the button is Green (btn-success)
+        if (solveBtn.classList.contains('btn-success')) {
+            solveModal.show();
+        } 
+        // Trigger Reset confirmation if the button is Grey
+        else {
+            if (confirm("Resetting will wipe your SRS streak. History stays safe. Continue?")) {
+                await runToggleSolve({ action: 'reset' });
+            }
+        }
+    };
+    // New modal submit
+    modalSubmitBtn.onclick = async () => {
+        if (modalSubmitBtn.classList.contains('disabled')) return;
+
+        const minutes = timeInput.value
+        console.log(minutes)
+        const success = await runToggleSolve({
+            action: 'solve',
+            confidence: selectedConf,
+            time_spent: minutes * 60 ,
+            provider:localStorage.getItem("ai_provider"), // Converting to seconds for the backend
+            user_api_key:localStorage.getItem("ai_api_key")// Converting minutes to seconds for the DB
+        });
+
+        if (success) {
+            // Simply hide the modal and stay on the current question page
+            solveModal.hide();
+        }
+    };
+    // New toggle solve api
+    async function runToggleSolve(payload) {
         solveBtn.disabled = true;
         try {
             const res = await fetch('/api/toggle_solve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question_id: qId })
+                body: JSON.stringify({ 
+                    question_id: qId,
+                    ...payload 
+                })
             });
             const result = await res.json();
             updateSolveUI(result.action === 'solved');
+            return true;
         } catch (e) {
-            console.error(e);
+            console.error("Sync Error:", e);
+            alert("Database sync failed. Check your connection.");
+            return false;
         } finally {
             solveBtn.disabled = false;
         }
-    };
+    }
     // --- NEW: Chat History Loader ---
     async function loadChatHistory() {
         try {
@@ -172,9 +245,11 @@ if (!desc) {
     // Helper functions
     function updateSolveUI(isSolved) {
         if (isSolved) {
+            // Grey State (Already Solved)
             solveBtn.className = "btn btn-sm btn-outline-secondary rounded-pill px-4 py-2";
             solveBtn.innerHTML = '<i class="bi bi-arrow-counterclockwise me-1"></i> Reset Progress';
         } else {
+            // Green State (Fresh Solve)
             solveBtn.className = "btn btn-sm btn-success rounded-pill px-4 py-2";
             solveBtn.innerHTML = '<i class="bi bi-check2-circle me-1"></i> Mark Solved';
         }

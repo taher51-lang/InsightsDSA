@@ -162,37 +162,50 @@
 
     </div>
 
-    <div class="modal fade" id="reviewModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0 shadow-lg rounded-4">
+    <div class="modal fade" id="reviewModal" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-white text-dark">
 
-                <div class="modal-header border-0 pb-0">
-                    <h5 class="modal-title fw-bold">Review Session</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
+            <div class="modal-body text-center py-4">
+                <p class="text-uppercase fw-bold text-primary small mb-1">Reviewing</p>
+                <h3 class="fw-bold mb-3" id="reviewQuestionTitle">Problem Title</h3>
 
-                <div class="modal-body text-center py-4">
-                    <h3 class="fw-bold mb-3" id="reviewQuestionTitle">Problem Title</h3>
+                <a href="#" target="_blank" id="reviewLink" class="btn btn-outline-dark rounded-pill px-4 mb-4 btn-sm">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Open in LeetCode
+                </a>
 
-                    <a href="#" target="_blank" id="reviewLink" class="btn btn-outline-dark rounded-pill px-4 mb-4">
-                        <i class="bi bi-box-arrow-up-right me-2"></i>Open in LeetCode
-                    </a>
+                <hr class="opacity-10 my-4">
 
-                    <hr class="opacity-10 my-4">
-
-                    <p class="small text-uppercase fw-bold text-muted tracking-wide">Rate your performance</p>
-
-                    <div class="d-flex justify-content-center gap-2">
-                        <button onclick="submitReview(0)" class="btn btn-danger flex-grow-1">Forgot</button>
-                        <button onclick="submitReview(3)" class="btn btn-warning flex-grow-1 text-white">Hard</button>
-                        <button onclick="submitReview(4)" class="btn btn-primary flex-grow-1">Good</button>
-                        <button onclick="submitReview(5)" class="btn btn-success flex-grow-1">Easy</button>
+                <div class="mb-4 px-3 text-start">
+                    <label class="form-label small text-uppercase fw-bold text-muted">Review Time (Minutes)</label>
+                    <div class="input-group">
+                        <input type="number" id="review-time-input" 
+                               class="form-control bg-light border text-dark fw-bold" 
+                               value="5" min="1">
+                        <span class="input-group-text bg-light border text-muted">min</span>
                     </div>
                 </div>
 
+                <p class="small text-uppercase fw-bold text-muted tracking-wide mb-3">Rate your performance</p>
+
+                <div class="d-flex justify-content-center gap-2 px-2">
+                    <button id="btn-forgot" onclick="submitReview(0)" class="btn btn-outline-danger flex-grow-1 py-2">Forgot</button>
+                    <button id="btn-hard" onclick="submitReview(3)" class="btn btn-outline-warning flex-grow-1 py-2 text-dark">Hard</button>
+                    <button id="btn-good" onclick="submitReview(4)" class="btn btn-outline-primary flex-grow-1 py-2">Good</button>
+                    <button id="btn-easy" onclick="submitReview(5)" class="btn btn-outline-success flex-grow-1 py-2">Easy</button>
+                </div>
+                
+                <p class="text-muted mt-4 mb-0" style="font-size: 0.7rem;">
+                    Time input is required to update your Dojo insights.
+                </p>
             </div>
+
         </div>
     </div>
+</div>
     <div class="modal fade" id="similarModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-4">
@@ -216,32 +229,56 @@
     <script>
         let currentReviewId = null;
 
-        function openReviewModal(id, title, link) {
-            currentReviewId = id;
-            document.getElementById('reviewQuestionTitle').innerText = title;
-            document.getElementById('reviewLink').href = link;
-            new bootstrap.Modal(document.getElementById('reviewModal')).show();
+function openReviewModal(id, title, link) {
+    currentReviewId = id;
+    document.getElementById('reviewQuestionTitle').innerText = title;
+    document.getElementById('reviewLink').href = link;
+    
+    // Reset time to default 5 mins for reviews
+    document.getElementById('review-time-input').value = 5;
+    
+    // Show the lockdown modal
+    const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+    modal.show();
+}
+
+async function submitReview(quality) {
+    if (!currentReviewId) return;
+
+    const timeInput = document.getElementById('review-time-input');
+    const minutes = parseInt(timeInput.value);
+
+    // UNCLOSABLE VALIDATION: Block if time is invalid
+    if (!minutes || minutes <= 0) {
+        alert("Please enter the time spent reviewing this problem.");
+        timeInput.classList.add('is-invalid');
+        return;
+    }
+
+    const payload = {
+        question_id: currentReviewId,
+        quality: quality,
+        time_spent: minutes * 60,
+        provider:localStorage.getItem("ai_provider"), // Converting to seconds for the backend
+        user_api_key:localStorage.getItem("ai_api_key")
+    };
+
+    try {
+        const res = await fetch('/api/review', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.status === 'success') {
+            location.reload();
         }
-
-        function submitReview(quality) {
-            if (!currentReviewId) return;
-
-            const formData = new URLSearchParams();
-            formData.append('question_id', currentReviewId);
-            formData.append('quality', quality);
-
-            fetch('/api/review', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: formData
-            })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === 'success') location.reload();
-                });
-        }
+    } catch (err) {
+        console.error("Review Sync Error:", err);
+        alert("Failed to save review. Please check your connection.");
+    }
+}
         function openSimilarModal(qId, difficulty) {
             const modal = new bootstrap.Modal(document.getElementById('similarModal'));
             const list = document.getElementById('similar-list');

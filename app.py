@@ -13,6 +13,7 @@ from datetime import datetime
 import traceback
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
+from analystBot import Analyst
 
 load_dotenv()
 app = Flask(__name__)
@@ -467,6 +468,49 @@ def get_question_details(q_id):
     finally:
         cur.close()
         con.close()
+def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key,provider):
+    """The Single Source of Truth for Dojo Data."""
+    # 1. Background AI Analysis (Silent)
+    ai_score = None
+    clarity=None
+    
+    try:
+        # 1. Fetch Question Details (for the AI context)
+        # Assuming you have a function to get title/desc from DB
+        con = getDBConnection()        
+        cur = con.cursor()
+        cur.execute("SELECT description FROM questions WHERE id = %s", (q_id,))
+        row = cur.fetchone()
+        if not row:
+            print("question details not found")
+        else:
+            q_details = row[0]
+        # 2. Fetch Chat History (Transcript)
+        # Using the retriever we built earlier
+        print("Good")
+        transcript = fetch_session_transcript(user_id, q_id)
+        cur.close()
+        con.close()
+        # 3. Only analyze if the user actually engaged (Filter)
+        if transcript and len(transcript) >= 4 and api_key:
+            analyst = Analyst(api_key, provider)
+            # Invoke the logic
+            analysis = analyst.get_response(q_details, transcript)
+            print("HOOOOOO")
+            print(analysis)
+            if analysis:
+                ai_score = analysis.mastery_score
+                clarity = analysis.clarity_score
+        con = getDBConnection()
+        cur = con.cursor()
+        cur.execute("""
+            INSERT INTO activity_log 
+            (user_id, question_id, action, confidence_level, time_spent_seconds, ai_bifurcated_score,clarity_of_thought) 
+            VALUES (%s, %s, %s, %s, %s, %s,%s)
+        """, (user_id, q_id, action_type, confidence, time_seconds, ai_score,clarity))
+        con.commit()
+    except Exception as e:
+        print(f"activity table Log Error: {e}")
 
 @app.route("/api/toggle_solve", methods=["POST"])
 def toggle_solve():
@@ -477,6 +521,10 @@ def toggle_solve():
         
     data = request.get_json()
     q_id = data.get("question_id")
+    confidence = data.get("confidence")
+    time_spent = data.get("time_spent")
+    api_key = data.get("user_api_key")
+    provider = data.get("provider")
     con = getDBConnection()
     cur = con.cursor()
     
@@ -504,13 +552,12 @@ def toggle_solve():
                 (user_id, question_id, solved_at, "interval", ease_factor, repetitions, next_review, is_solved) 
                 VALUES (%s, %s, NOW(), 1, 2.5, 0, %s, TRUE)
             """
+            action="solved"
             cur.execute(query, (user_id, q_id, tomorrow))
             # NEW: Drop the 'solved' event into the Activity Log!
-            cur.execute("""
-                INSERT INTO activity_log (user_id, question_id, action) 
-                VALUES (%s, %s, 'solved')
-            """, (user_id, q_id))
-            action = "solved"
+            log_to_activity(user_id,q_id,action,confidence,time_spent,api_key,provider)
+            print(time_spent)
+            print("here")
         con.commit() 
         return jsonify({"status": "success", "action": action})
     except Exception as e:
@@ -654,8 +701,11 @@ def api_review():
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
     # 2. Get Data from Frontend
-    question_id = request.form.get('question_id')
-    quality = int(request.form.get('quality')) # 0, 3, 4, 5
+    data = request.get_json()
+    question_id = data.get('question_id')
+    quality = int(data.get('quality', 0))  # 0, 3, 4, 5
+    # Get time from 'time_spent' (matching the JS payload)
+    time_seconds = int(data.get('time_spent', 0))
     con = getDBConnection()
     cur = con.cursor()
     try:
@@ -686,10 +736,10 @@ def api_review():
         # ... your existing code that updates user_progress ...
 
 # NEW: Drop a record into the activity log
-        cur.execute("""
-            INSERT INTO activity_log (user_id, question_id, action) 
-            VALUES (%s, %s, %s)
-            """, (user_id, question_id, 'reviewed')) # Change 'solved' to 'reviewed' for your review route
+        action = "reviewd"
+        log_to_activity(user_id,question_id,action,quality,time_seconds)
+
+        # Change 'solved' to 'reviewed' for your review route
 # Make sure you con.commit() after this!
         con.commit()
         return jsonify({"status": "success", "new_date": str(new_date)})
@@ -1115,6 +1165,132 @@ def get_chat_history(question_id):
         # 5. Always close your connections!
         cur.close()
         con.close()
+
+def fetch_session_transcript(user_id, q_id):
+    """
+    Pulls the full conversation for a specific user and question.
+    Returns a list of HumanMessage and AIMessage objects.
+    """
+    try:
+        con = getDBConnection()
+        cur = con.cursor()
+        # We grab all messages for this user/question pair
+        # typically filtered by the most recent session window
+        cur.execute("""
+            SELECT role, content 
+            FROM chat_messages 
+            WHERE user_id = %s AND question_id = %s
+            ORDER BY id ASC
+        """, (user_id, q_id))
+        rows = cur.fetchall()
+        # Mapping to LangChain objects
+        transcript = []
+        for role, content in rows:
+            if role == 'user':
+                transcript.append(HumanMessage(content=content))
+            else:
+                transcript.append(AIMessage(content=content))
+        return transcript
+    except Exception as e:
+        print(f"Database Retrieval Error: {e}")
+        return []
+def get_skill_matrix_stats(user_id):
+    con = getDBConnection()
+    cur = con.cursor()
+    cur.execute("""
+        SELECT 
+            c.title AS concept_title,
+            COUNT(al.id) AS solved_count,
+            AVG(al.ai_bifurcated_score) AS avg_mastery,
+            AVG(al.clarity_of_thought) AS avg_clarity
+        FROM activity_log al
+        JOIN questions q ON al.question_id = q.id
+        JOIN concepts c ON q.concept_id = c.id
+        WHERE al.user_id = %s
+        GROUP BY c.title
+    """, (user_id,))
+    rows = cur.fetchall()
+    cur.close()
+    con.close()
+    # Scaling 0-5 to 0-100 for the sleek Radar UI
+    return [{
+        "label": r[0],
+        "count": r[1],
+        "mastery": round(float(r[2] or 0) * 20, 1), 
+        "clarity": round(float(r[3] or 0) * 20, 1)  
+    } for r in rows]
+def get_concept_breakdown(user_id):
+    con = getDBConnection()
+    cur = con.cursor()
+    try:
+        cur.execute("""
+            SELECT 
+                c.title AS concept,
+                q.title AS q_title,
+                al.time_spent_seconds,
+                al.confidence_level
+            FROM activity_log al
+            JOIN questions q ON al.question_id = q.id
+            JOIN concepts c ON q.concept_id = c.id
+            WHERE al.user_id = %s
+            ORDER BY c.title, al.created_at DESC
+        """, (user_id,))
+        rows = cur.fetchall()
+        grouped = {}
+        for concept, q_title, time_sec, conf in rows:
+            # 1. Fallbacks for missing text data
+            concept_name = concept if concept else "Uncategorized"
+            question_name = q_title if q_title else "Unknown Question"
+            # 2. NULL-Safety for Math (This stops the crashes!)
+            safe_time = int(time_sec) if time_sec is not None else 0
+            safe_conf = float(conf) if conf is not None else 0.0
+            # Initialize the group
+            if concept_name not in grouped:
+                grouped[concept_name] = []
+            # Format time nicely (Shows "< 1m" if they solved it super fast)
+            mins = safe_time // 60
+            time_display = f"{mins}m" if mins > 0 else "< 1m"
+            grouped[concept_name].append({
+                "title": question_name,
+                "time": time_display,
+                "autonomy": f"{int(safe_conf * 20)}%" 
+            })
+        return grouped
+    except Exception as e:
+        # If the SQL fails, print the exact error so you can debug it, 
+        # but return an empty dictionary so the UI doesn't completely break!
+        print(f"💥 Error in get_concept_breakdown: {e}")
+        return {} 
+    finally:
+        # This guarantees the connection closes EVEN IF the code crashes
+        cur.close()
+        con.close()
+@app.route('/api/insights/matrix', methods=['GET'])
+def get_insights_data():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    print("HIIIIII")
+    # 1. Fetch the Radar Chart Data
+    matrix_stats = get_skill_matrix_stats(user_id)
+    print("after HIII")
+    # 2. Fetch the Accordion List Data
+    concept_history = get_concept_breakdown(user_id)
+    print("yup.error's here")
+    # (Optional) 3. Fetch the AI Diagnostic Summary from DB if you cached it
+    # ai_summary = fetch_latest_diagnostic(user_id)
+
+    return jsonify({
+        "status": "success",
+        "matrix_stats": matrix_stats,
+        "concept_history": concept_history
+    })
+@app.route('/insights')
+def insights_page():
+    # Security: Kick them to login if they aren't logged in
+    
+    # Render the LogicLens page
+    return render_template('insights.html', name=session.get('name', ''))
 if __name__ == "__main__":
     app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)
