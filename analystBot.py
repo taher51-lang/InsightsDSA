@@ -46,11 +46,51 @@ class Analyst:
         Conversation History:
         {chat_str}
         """
-
         try:
             # Because we used .with_structured_output, this returns an AnalystSchema object!
             # No parsers or templates required.
             return self.model.invoke(system_prompt)
         except Exception as e:
             print(f"AI Analyst Timeout or Error: {e}")
+            return None
+
+class CoachSchema(BaseModel):
+    diagnostic: str = Field(..., description="2 sentences analyzing their strengths and weaknesses based on the data.")
+    predictor: str = Field(..., description="2 sentences predicting their interview readiness for top tech roles.")
+
+class InsightCoach:
+    def __init__(self, api_key, provider):
+        self.api_key = api_key
+        self.provider = provider.lower()
+        self.model = self._initialize_model()
+
+    def _initialize_model(self):
+        if self.provider == "openai":
+            base = ChatOpenAI(model="gpt-4o-mini", openai_api_key=self.api_key, timeout=20)
+        elif self.provider == "gemini":
+            base = ChatGoogleGenerativeAI(model="gemini-2.5-flash", google_api_key=self.api_key, timeout=20)
+        elif self.provider == "grok":
+            base = ChatXAI(model="grok-3", xai_api_key=self.api_key, timeout=20)
+        else:
+            return None
+
+        # Bind the new Coach schema!
+        return base.with_structured_output(CoachSchema)
+
+    def get_summary(self, stats_string):
+        if not self.model: 
+            return None
+        
+        system_prompt = f"""You are an elite, brutally honest Senior Engineering Manager evaluating a candidate's DSA progress. 
+        Analyze this user's data: {stats_string}
+        
+        Rules:
+        1. Diagnostic: Point out exactly what they are good at and what they are failing at. Name the concepts.
+        2. Predictor: Tell them exactly how they would fare in a FAANG interview right now. Be specific, name drop companies if applicable (e.g., "Ready for Amazon, but Meta will crush you on Graphs").
+        3. Do NOT use markdown. Write plain, punchy text.
+        """
+        try:
+            return self.model.invoke(system_prompt)
+        except Exception as e:
+            print(f"Coach AI Error: {e}")
             return None

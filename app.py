@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, jsonify,session,redirect,url_for,flash
-from aiBotBackend import chatbot;
+from aiBotBackend import chatbot
 from datetime import date, timedelta 
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,7 +13,7 @@ from datetime import datetime
 import traceback
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
-from analystBot import Analyst
+from analystBot import Analyst,InsightCoach
 
 load_dotenv()
 app = Flask(__name__)
@@ -706,6 +706,8 @@ def api_review():
     quality = int(data.get('quality', 0))  # 0, 3, 4, 5
     # Get time from 'time_spent' (matching the JS payload)
     time_seconds = int(data.get('time_spent', 0))
+    api_key = data.get("user_api_key")
+    provider = data.get("provider")
     con = getDBConnection()
     cur = con.cursor()
     try:
@@ -737,7 +739,7 @@ def api_review():
 
 # NEW: Drop a record into the activity log
         action = "reviewd"
-        log_to_activity(user_id,question_id,action,quality,time_seconds)
+        log_to_activity(user_id,question_id,action,quality,time_seconds,api_key,provider=provider)
 
         # Change 'solved' to 'reviewed' for your review route
 # Make sure you con.commit() after this!
@@ -1086,7 +1088,7 @@ def api_consistency():
             SELECT 
                 COUNT(DISTINCT DATE(created_at)) AS active_days,
                 COUNT(CASE WHEN action = 'solved' THEN 1 END) AS solves,
-                COUNT(CASE WHEN action = 'reviewed' THEN 1 END) AS reviews
+                COUNT(CASE WHEN action = 'reviewd' THEN 1 END) AS reviews
             FROM activity_log
             WHERE user_id = %s AND created_at >= NOW() - INTERVAL '30 days'
         """, (user_id,))
@@ -1197,28 +1199,52 @@ def fetch_session_transcript(user_id, q_id):
 def get_skill_matrix_stats(user_id):
     con = getDBConnection()
     cur = con.cursor()
+    
+    # 1. Pull the individual averages for ALL relevant columns
     cur.execute("""
         SELECT 
             c.title AS concept_title,
             COUNT(al.id) AS solved_count,
-            AVG(al.ai_bifurcated_score) AS avg_mastery,
-            AVG(al.clarity_of_thought) AS avg_clarity
+            AVG(al.ai_bifurcated_score) AS avg_logic,
+            AVG(al.clarity_of_thought) AS avg_clarity,
+            AVG(al.confidence_level) AS avg_confidence
         FROM activity_log al
         JOIN questions q ON al.question_id = q.id
         JOIN concepts c ON q.concept_id = c.id
         WHERE al.user_id = %s
         GROUP BY c.title
     """, (user_id,))
+    
     rows = cur.fetchall()
     cur.close()
     con.close()
-    # Scaling 0-5 to 0-100 for the sleek Radar UI
-    return [{
-        "label": r[0],
-        "count": r[1],
-        "mastery": round(float(r[2] or 0) * 20, 1), 
-        "clarity": round(float(r[3] or 0) * 20, 1)  
-    } for r in rows]
+
+    formatted_data = []
+    for r in rows:
+        label = r[0]
+        count = r[1]
+        
+        # 2. Safely extract the data (default to 0 if NULL)
+        avg_logic = float(r[2] or 0)
+        avg_clarity = float(r[3] or 0)
+        avg_confidence = float(r[4] or 0)
+        
+        # 3. Calculate the Composite Score (Average of the 3 metrics)
+        # Since all three are on a 1-5 scale, their average is also 1-5.
+        composite_score = (avg_logic + avg_clarity + avg_confidence) / 3
+        
+        # 4. Scale to 0-100% for the Radar Chart
+        mastery_percentage = round(composite_score * 20, 1)
+        clarity_percentage = round(avg_clarity * 20, 1) # Keeping this separate just in case your UI needs it
+
+        formatted_data.append({
+            "label": label,
+            "count": count,
+            "mastery": mastery_percentage,
+            "clarity": clarity_percentage  
+        })
+
+    return formatted_data
 def get_concept_breakdown(user_id):
     con = getDBConnection()
     cur = con.cursor()
@@ -1270,13 +1296,10 @@ def get_insights_data():
     user_id = session.get("user_id")
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
-    print("HIIIIII")
     # 1. Fetch the Radar Chart Data
     matrix_stats = get_skill_matrix_stats(user_id)
-    print("after HIII")
     # 2. Fetch the Accordion List Data
     concept_history = get_concept_breakdown(user_id)
-    print("yup.error's here")
     # (Optional) 3. Fetch the AI Diagnostic Summary from DB if you cached it
     # ai_summary = fetch_latest_diagnostic(user_id)
 
@@ -1288,9 +1311,57 @@ def get_insights_data():
 @app.route('/insights')
 def insights_page():
     # Security: Kick them to login if they aren't logged in
-    
     # Render the LogicLens page
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     return render_template('insights.html', name=session.get('name', ''))
+@app.route('/api/insights/ai-summary', methods=['POST'])
+def get_ai_summary():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        # 1. Grab the exact same stats we use for the Radar Chart
+        stats = get_skill_matrix_stats(user_id)
+        data = request.get_json()
+        api_key = data.get("api_key")
+        provider = data.get("provider")
+        
+        # 2. If they haven't solved anything yet, skip the AI call to save tokens
+        if not stats:
+            return jsonify({
+                "diagnostic": "You need to solve some problems before I can analyze your logic patterns.",
+                "predictor": "Start your journey. Complete at least 3 problems to unlock your interview predictor."
+            })
+
+        # 3. Smash the stats into a compact string for the AI to read
+        stats_str = ", ".join([f"{s['label']}: {s['mastery']}% Mastery ({s['count']} solved)" for s in stats])
+        
+        # 4. Wake up the Coach AI
+        # Assuming you stored these in session during login, adjust if you pull from the DB!
+        # api_key = session.get("api_key") 
+        # provider = session.get("provider", "gemini") 
+        
+        coach = InsightCoach(api_key, provider)
+        ai_result = coach.get_summary(stats_str)
+
+        if ai_result:
+            return jsonify({
+                "diagnostic": ai_result.diagnostic,
+                "predictor": ai_result.predictor
+            })
+        else:
+            raise Exception("AI returned empty.")
+
+    except Exception as e:
+        print(f"💥 Error generating AI Summary: {e}")
+        # Graceful fallback so the UI never breaks
+        return jsonify({
+            "diagnostic": "System currently analyzing your latest data structures. Check back soon.",
+            "predictor": "Gathering more data points to formulate an accurate interview readiness score."
+        })
 if __name__ == "__main__":
     app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)
