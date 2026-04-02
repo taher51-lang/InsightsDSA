@@ -1,6 +1,6 @@
 flask
 psycopg2-binary
-
+redis
 dotenv
 # Core LangChain
 langchain>=1.2.3
