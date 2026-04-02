@@ -85,9 +85,11 @@ class InsightCoach:
         Analyze this user's data: {stats_string}
         
         Rules:
-        1. Diagnostic: Point out exactly what they are good at and what they are failing at. Name the concepts.
+        1. Diagnostic: Point out exactly what they are good at and what they are failing at. Name the concepts.(Do not use demotivating tone)
         2. Predictor: Tell them exactly how they would fare in a FAANG interview right now. Be specific, name drop companies if applicable (e.g., "Ready for Amazon, but Meta will crush you on Graphs").
         3. Do NOT use markdown. Write plain, punchy text.
+        4. Add few motivative sentences at the end according to the data(e.g consistency)
+        5. 
         """
         try:
             return self.model.invoke(system_prompt)

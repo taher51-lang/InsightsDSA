@@ -14,7 +14,8 @@ import traceback
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
 from analystBot import Analyst,InsightCoach
-
+import redis
+Redis = redis.Redis(host='localhost', port=6379, decode_responses=True)
 load_dotenv()
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -493,7 +494,7 @@ def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key
         con.close()
         # 3. Only analyze if the user actually engaged (Filter)
         if transcript and len(transcript) >= 4 and api_key:
-            analyst = Analyst(api_key, provider)
+            analyst = Analyst(Redis.hget(f"user:{session["user_id"]}", "api_key"), provider)
             # Invoke the logic
             analysis = analyst.get_response(q_details, transcript)
             print("HOOOOOO")
@@ -555,7 +556,24 @@ def toggle_solve():
             action="solved"
             cur.execute(query, (user_id, q_id, tomorrow))
             # NEW: Drop the 'solved' event into the Activity Log!
-            log_to_activity(user_id,q_id,action,confidence,time_spent,api_key,provider)
+            # log_to_activity(user_id,q_id,action,confidence,time_spent,api_key,provider)
+            cur.execute("""
+            INSERT INTO activity_log 
+            (user_id, question_id, action, confidence_level, time_spent_seconds) 
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+            """, (user_id, q_id, 'solved', confidence, time_spent))
+    
+            activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
+
+    # 2. Tell the worker: "Hey, go find row ID X and add the AI scores to it"
+            task_payload = {
+            "activity_id": activity_id, # The key to the update
+            "user_id": user_id,
+            "q_id": q_id,
+            "provider": provider
+            }
+            Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
             print(time_spent)
             print("here")
         con.commit() 
@@ -597,7 +615,7 @@ def ask_AI():
         response = chatbot.invoke({
             'messages': [HumanMessage(content=query)],
             'question': question_description,
-            'user_api_key': user_api_key, 
+            'user_api_key': Redis.hget(f"user:{session["user_id"]}", "api_key"), 
             'provider': provider          
         }, config=config)
         
@@ -739,8 +757,24 @@ def api_review():
 
 # NEW: Drop a record into the activity log
         action = "reviewd"
-        log_to_activity(user_id,question_id,action,quality,time_seconds,api_key,provider=provider)
+        # log_to_activity(user_id,question_id,action,quality,time_seconds,api_key,provider=provider)
+        cur.execute("""
+            INSERT INTO activity_log 
+            (user_id, question_id, action, confidence_level, time_spent_seconds) 
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+            """, (user_id, question_id, action, quality, time_seconds))
+    
+        activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
 
+    # 2. Tell the worker: "Hey, go find row ID X and add the AI scores to it"
+        task_payload = {
+            "activity_id": activity_id, # The key to the update
+            "user_id": user_id,
+            "q_id": question_id,
+            "provider": provider
+            }
+        Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
         # Change 'solved' to 'reviewed' for your review route
 # Make sure you con.commit() after this!
         con.commit()
@@ -1326,7 +1360,7 @@ def get_ai_summary():
         # 1. Grab the exact same stats we use for the Radar Chart
         stats = get_skill_matrix_stats(user_id)
         data = request.get_json()
-        api_key = data.get("api_key")
+        api_key = Redis.hget(f"user:{session["user_id"]}", "api_key")
         provider = data.get("provider")
         
         # 2. If they haven't solved anything yet, skip the AI call to save tokens
@@ -1362,6 +1396,24 @@ def get_ai_summary():
             "diagnostic": "System currently analyzing your latest data structures. Check back soon.",
             "predictor": "Gathering more data points to formulate an accurate interview readiness score."
         })
+@app.route('/api/set-key', methods=['POST'])
+def set_api_key():
+    data = request.json
+    api_key = data.get('api_key')
+    provider = data.get('provider')
+    
+    # For V1, we'll use a 'default_user' ID. 
+    # Later, this would be the logged-in user's ID.
+    user_id = session.get("user_id")
+    
+    if api_key:
+        Redis.hset(f"user:{user_id}", mapping={
+            "api_key": api_key,
+            "provider": provider
+        })
+        return jsonify({"status": "success"}), 200
+    
+    return jsonify({"status": "error", "message": "No key provided"}), 400
 if __name__ == "__main__":
     app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)
