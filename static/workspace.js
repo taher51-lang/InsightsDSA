@@ -27,33 +27,33 @@ document.addEventListener("DOMContentLoaded", async () => {
         console.log(data.description)
         const desc = data.description;
 
-// 1. Handle the empty state properly first
-if (!desc) {
-    descEl.innerHTML = "<span class='text-muted'>No description provided.</span>";
-} else {
-    // 2. Split right BEFORE the word "Example" (case-insensitive)
-    // The (?=...) is a "Positive Lookahead". It splits the string but KEEPS the word "Example".
-    const parts = desc.split(/(?=Example)/i);
+        // 1. Handle the empty state properly first
+        if (!desc) {
+            descEl.innerHTML = "<span class='text-muted'>No description provided.</span>";
+        } else {
+            // 2. Split right BEFORE the word "Example" (case-insensitive)
+            // The (?=...) is a "Positive Lookahead". It splits the string but KEEPS the word "Example".
+            const parts = desc.split(/(?=Example)/i);
 
-    // 3. Rebuild the HTML. 
-    // parts[0] is the main description. parts[1], parts[2] etc. are the examples.
-    descEl.innerHTML = parts.map((part, index) => {
-        if (index === 0) return part; // Return main description as-is
-        
-        // Wrap every example in a nice indented Bootstrap block
-        return `<div class="mt-4 p-3 bg-light border-start border-primary border-4 rounded">
+            // 3. Rebuild the HTML. 
+            // parts[0] is the main description. parts[1], parts[2] etc. are the examples.
+            descEl.innerHTML = parts.map((part, index) => {
+                if (index === 0) return part; // Return main description as-is
+
+                // Wrap every example in a nice indented Bootstrap block
+                return `<div class="mt-4 p-3 bg-light border-start border-primary border-4 rounded">
                     ${part}
                 </div>`;
-    }).join('');
-}
-        descEl.style.fontWeight="bold"
+            }).join('');
+        }
+        descEl.style.fontWeight = "bold"
         lcLink.href = data.link;
         updateSolveUI(data.is_solved);
         // addMsg("ai", `I'm analyzing **${data.title}**. Need a strategy or a hint?`);
         // Remove Loader
         document.getElementById('loading-screen').style.display = 'none';
         document.getElementById('loading-screen').style.display = 'none';
-        
+
         // --- ADD THIS LINE ---
         loadChatHistory();
     } catch (err) {
@@ -61,7 +61,7 @@ if (!desc) {
         titleEl.innerText = "Error Loading Question";
     }
     // 2. Toggle Solve Logic
-   // --- Updated: High-Contrast Selection for White Theme ---
+    // --- Updated: High-Contrast Selection for White Theme ---
     document.querySelectorAll('.conf-option').forEach(btn => {
         btn.onclick = () => {
             // 1. Reset all buttons to the "Outline" state
@@ -95,7 +95,7 @@ if (!desc) {
         // Only trigger modal if the button is Green (btn-success)
         if (solveBtn.classList.contains('btn-success')) {
             solveModal.show();
-        } 
+        }
         // Trigger Reset confirmation if the button is Grey
         else {
             if (confirm("Resetting will wipe your SRS streak. History stays safe. Continue?")) {
@@ -112,9 +112,9 @@ if (!desc) {
         const success = await runToggleSolve({
             action: 'solve',
             confidence: selectedConf,
-            time_spent: minutes * 60 ,
-            provider:localStorage.getItem("ai_provider"), // Converting to seconds for the backend
-            user_api_key:localStorage.getItem("ai_api_key")// Converting minutes to seconds for the DB
+            time_spent: minutes * 60,
+            provider: localStorage.getItem("ai_provider"), // Converting to seconds for the backend
+            user_api_key: localStorage.getItem("ai_api_key")// Converting minutes to seconds for the DB
         });
 
         if (success) {
@@ -126,12 +126,12 @@ if (!desc) {
     async function runToggleSolve(payload) {
         solveBtn.disabled = true;
         try {
-            const res = await fetch('/api/toggle_solve', {
+            const res = await apiCall('/api/toggle_solve', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
+                body: JSON.stringify({
                     question_id: qId,
-                    ...payload 
+                    ...payload
                 })
             });
             const result = await res.json();
@@ -168,18 +168,18 @@ if (!desc) {
                 // 2. Logic for "Resume Chat"
                 document.getElementById('btn-resume').onclick = () => {
                     document.getElementById('history-banner').remove();
-                    
+
                     // Grab the exact thread ID from the database
                     currentThreadId = savedHistoryData[0].thread_id;
-                    
+
                     // Loop through and paint the old messages using YOUR addMsg function!
                     savedHistoryData.forEach(msg => {
                         // LangGraph saves it as 'assistant', but your UI expects 'ai'
                         const uiRole = msg.role === 'assistant' ? 'ai' : 'user';
-                        
+
                         // Only parse Markdown if it's the AI speaking
                         const content = uiRole === 'ai' ? marked.parse(msg.content) : msg.content;
-                        
+
                         addMsg(uiRole, content);
                     });
                 };
@@ -207,32 +207,35 @@ if (!desc) {
 
         addMsg("user", text);
         aiInput.value = "";
-        
+
         const loaderId = "loader-" + Date.now();
         addMsg("ai", '<div class="spinner-border spinner-border-sm text-primary"></div> Analyzing...', loaderId);
         if (!currentThreadId) {
             currentThreadId = crypto.randomUUID();
         }
         try {
-            const res = await fetch('/api/ask_ai', {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const res = await apiCall('/api/ask_ai', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    question_id: qId, 
+                headers: { 'Content-Type': 'application/json' ,'X-CSRFToken': csrfToken},
+                body: JSON.stringify({
+                    question_id: qId,
                     query: text,
                     api_key: apiKey,     // Send to Flask
-                    provider: provider, 
+                    provider: provider,
                     thread_id: currentThreadId  // Send to Flask
                 })
             });
             const data = await res.json();
-            
+
             // If the key is bad/exhausted, LangGraph will fail
-            if (res.status === 401 || res.status === 403) {
-                document.getElementById(loaderId).innerText = "Error: Invalid API Key. Please configure your engine.";
-                localStorage.removeItem('ai_api_key'); // Delete the bad key
-                checkAIAccess(); // Re-lock the UI
-                openAIEditModal(); // Pop the settings open automatically
+            if (res.status === 401 || res.status === 402 || res.status === 429) {
+                // 1. Clean up the chat loader
+                const loader = document.getElementById(loaderId);
+                if (loader) loader.remove();
+
+                // 2. Trigger the premium popup
+                triggerErrorUI(res.status);
                 return;
             }
 
@@ -267,3 +270,19 @@ if (!desc) {
     sendBtn.onclick = askAI;
     aiInput.onkeypress = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAI(); } };
 });
+async function apiCall(url, options = {}) {
+    // 1. Grab the token from the meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // 2. Automatically add the header to whatever options were passed
+    const secureOptions = {
+        ...options, // Keep existing method, body, etc.
+        headers: {
+            ...options.headers, // Keep existing headers
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    return fetch(url, secureOptions);
+}

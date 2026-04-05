@@ -7,12 +7,17 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_xai import ChatXAI
 from typing import TypedDict,Annotated
-from langchain_core.output_parsers import StrOutputParser
-from langchain_ollama import ChatOllama
 from langgraph.graph.message import add_messages,BaseMessage
-from langchain_core.messages import HumanMessage
 from pydantic import Field
+from db import pool # Import the actual pool object
+from langgraph.checkpoint.postgres import PostgresSaver
 
+# Give LangGraph the whole valet service
+checkpointer = PostgresSaver(pool)
+
+# This sets up the 'checkpoints' tables automatically
+with pool.connection() as conn:
+    checkpointer.setup()
 class chatState(TypedDict):
     question: str = Field(description="This is the DSA question description")
     messages : Annotated[list[BaseMessage],add_messages]
@@ -41,7 +46,8 @@ def ChatNode(state: chatState) -> chatState:
     else:
         # Fallback or error handling
         print("Unsupported")
-        return {'bot_response': "Error: Unsupported AI provider."}
+        error_msg = AIMessage(content="Error: Unsupported AI provider selected.")
+        return {"messages": [error_msg]}
     history = state.get("messages", [])
     question_desc = state.get("question")
     
@@ -61,5 +67,5 @@ graph = StateGraph(state_schema=chatState)
 graph.add_node('ChatNode',ChatNode)
 graph.add_edge(START,'ChatNode')
 graph.add_edge('ChatNode',END)  
-checkpointer = InMemorySaver()
+# checkpointer = InMemorySaver()
 chatbot = graph.compile(checkpointer=checkpointer)

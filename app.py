@@ -4,20 +4,43 @@ from datetime import date, timedelta
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
+from psycopg.rows import dict_row
 from psycopg2 import errors
 from authlib.integrations.flask_client import OAuth
+from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
 from langchain_core.messages import SystemMessage,AIMessage,HumanMessage
 import os
 from datetime import datetime
 import traceback
+from psycopg_pool import ConnectionPool 
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
 from analystBot import Analyst,InsightCoach
+from cryptography.fernet import Fernet
 import redis
-Redis = redis.Redis(host='localhost', port=6379, decode_responses=True)
+from db import pool , getDBConnection
+MASTER_KEY = os.getenv("ENCRYPTION_KEY")
+Redis = redis.Redis(
+    host=os.getenv('REDIS_HOST', 'localhost'),
+    port=os.getenv('REDIS_PORT', 6379),
+    password=None,
+    # ssl=True,             # 🔒 Add this for encrypted transit
+    ssl_cert_reqs=None,   # Often required for cloud providers
+    decode_responses=True
+)
+cipher_suite = Fernet(MASTER_KEY)
+# pool = ConnectionPool(
+#     conninfo=DB_URI,
+#     min_size=2,    # Keep 2 connections ready at all times
+#     max_size=10,   # Never allow more than 10 total connections
+#     name="InsightsDSApool",
+#     kwargs={"autocommit": True} # Recommended for web apps
+# )
 load_dotenv()
 app = Flask(__name__)
+app.secret_key=os.getenv("app_secret_key")
+csrf = CSRFProtect(app) # This locks down all your POST routes
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 def sm2_algorithm(quality, current_interval, current_ease, repetitions):
     """
@@ -67,18 +90,18 @@ def homePage():
 @app.route("/loginpage")
 def LoginPage():
     return render_template("regAndLogin.html")
-app.secret_key = os.getenv("FLASK_SECRET_KEY") 
 
-def getDBConnection():
-    # Pulling DB details from .env for security
-    con = psycopg2.connect(
-        host=os.getenv("DB_HOST"),
-        database=os.getenv("DB_NAME"),
-        user=os.getenv("DB_USER"),
-        password=os.getenv("DB_PASS")
-    )
-    return con
-
+# def getDBConnection():
+#     """
+#     Acquires a connection from the valet (the pool).
+#     When you call .close() on this, it goes back to the pool 
+#     instead of being destroyed.
+#     """
+#     return pool.connection()
+def encrypt_key(plain_text):
+    return cipher_suite.encrypt(plain_text.encode()).decode()
+def decrypt_key(encrypted_text):
+    return cipher_suite.decrypt(encrypted_text.encode()).decode()
 # Configure Google OAuth
 oauth = OAuth(app)
 google = oauth.register(
@@ -108,44 +131,41 @@ def google_callback():
     first_name = full_name.split()[0]
     pic = user_info['picture']
 
-    conn = getDBConnection()
-    cur = conn.cursor()
+    with getDBConnection() as con:
+        cur = con.cursor()
 
     # 1. Check if user already exists (by email)
-    cur.execute("SELECT id FROM users WHERE email = %s", (email,))
-    user = cur.fetchone()
+        cur.execute("SELECT id FROM users WHERE email = %s", (email,))
+        user = cur.fetchone()
 
-    if user:
+        if user:
         # 2. LINKING: Update existing user
-        cur.execute("""
+            cur.execute("""
             UPDATE users 
             SET google_id = %s, profile_pic = %s 
             WHERE email = %s
         """, (g_id, pic, email))
-        user_id = user[0] 
-    else:
+            user_id = user[0] 
+        else:
         # 3. REGISTRATION: Added 'RETURNING id' to the SQL string
-        cur.execute("""
+            cur.execute("""
             INSERT INTO users (username, name, email, google_id, profile_pic) 
             VALUES (%s, %s, %s, %s, %s) 
             RETURNING id
-        """, (first_name, full_name, email, g_id, pic))
+            """, (first_name, full_name, email, g_id, pic))
         
         # Now fetchone() actually has the new ID to grab!
-        result = cur.fetchone()
-        user_id = result[0]
+            result = cur.fetchone()
+            user_id = result[0]
 
     # 4. Commit and set session
-    conn.commit()
-    session["user_id"] = user_id
-    session["user_id"] = user_id
-    conn.commit()
-    cur.close()
-    conn.close()
+        # con.commit()
+        session["user_id"] = user_id
+        session["user_id"] = user_id
     # Set session data for the UI
-    session['user_email'] = email
-    session['user_name'] = first_name
-    session['profile_pic'] = pic
+        session['user_email'] = email
+        session['user_name'] = first_name
+        session['profile_pic'] = pic
     return redirect(url_for('dashboard'))
 @app.route('/logout')
 def logout():
@@ -162,47 +182,47 @@ def login():
     con = None
     cur = None
     try:
-        con = getDBConnection()
-        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        # 1. Ask for the user by username ONLY
-        cur.execute("SELECT id, username, name, userpassword FROM users WHERE username = %s", (username,))
-        result = cur.fetchone()
-        if result['userpassword'] is None and result['google_id'] is not None:
-            return jsonify({
-                "error": "This account is linked with Google. Please use the 'Continue with Google' button."
-            }), 403
-        # If no user is found with that username
-        if not result:
-            return jsonify({"error": "Invalid Credentials"}), 401
-        current_db_password = result['userpassword']
-        is_valid = False
-        needs_upgrade = False
-        # 2. THE BILINGUAL CHECK
-        if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
-            # It's a secure hash!
-            is_valid = check_password_hash(current_db_password, userpass)
-        else:
-            # It's an old plaintext demo password!
-            print("")
-            is_valid = (current_db_password == userpass)
-            if is_valid:
-                needs_upgrade = True # Flag them for an upgrade!
-        # If the password didn't match either way, kick them out
-        if not is_valid:
-            return jsonify({"error": "Invalid Credentials"}), 401
-        # 3. AUTO-UPGRADE OLD ACCOUNTS (The Self-Cleaning Magic)
-        if needs_upgrade:
-            new_hashed_password = generate_password_hash(userpass)
-            cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (new_hashed_password, result['id']))
-            con.commit()
-            print(f"Security Upgrade Complete: Hashed password for user '{username}'")
-        # 4. Set Session and Log Them In
-        session['user_id'] = result['id'] 
-        session['user_name'] = result['username']  
-        if result["name"]:  
-            return jsonify({"message": "Login successful", "name": result['name']}), 200
-        else:
-            return jsonify({"message": "Login successful"}), 200
+        with getDBConnection() as con:
+            # con = getDBConnection()
+            cur = con.cursor(row_factory=dict_row)
+            # 1. Ask for the user by username ONLY
+            cur.execute("SELECT id, username, name, userpassword FROM users WHERE username = %s", (username,))
+            result = cur.fetchone()
+            if result['userpassword'] is None and result['google_id'] is not None:
+                return jsonify({
+                    "error": "This account is linked with Google. Please use the 'Continue with Google' button."
+                }), 403
+            # If no user is found with that username
+            if not result:
+                return jsonify({"error": "Invalid Credentials"}), 401
+            current_db_password = result['userpassword']
+            is_valid = False
+            needs_upgrade = False
+            # 2. THE BILINGUAL CHECK
+            if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
+                # It's a secure hash!
+                is_valid = check_password_hash(current_db_password, userpass)
+            else:
+                # It's an old plaintext demo password!
+                is_valid = (current_db_password == userpass)
+                if is_valid:
+                    needs_upgrade = True # Flag them for an upgrade!
+            # If the password didn't match either way, kick them out
+            if not is_valid:
+                return jsonify({"error": "Invalid Credentials"}), 401
+            # 3. AUTO-UPGRADE OLD ACCOUNTS (The Self-Cleaning Magic)
+            if needs_upgrade:
+                new_hashed_password = generate_password_hash(userpass)
+                cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (new_hashed_password, result['id']))
+                # con.commit()
+                print(f"Security Upgrade Complete: Hashed password for user '{username}'")
+            # 4. Set Session and Log Them In
+            session['user_id'] = result['id'] 
+            session['user_name'] = result['username']  
+            if result["name"]:  
+                return jsonify({"message": "Login successful", "name": result['name']}), 200
+            else:
+                return jsonify({"message": "Login successful"}), 200
 
 
 
@@ -210,10 +230,7 @@ def login():
         print("Database Error in login:", e)
         return jsonify({"error": "Server error"}), 500
         
-    finally:
-        # 5. Clean up tools safely
-        if cur: cur.close()
-        if con: con.close()
+   
 
 @app.route("/register_page")
 def register_page():
@@ -231,39 +248,35 @@ def register():
     hashed_password = generate_password_hash(userpass)
     
     try:
-        con = getDBConnection()
-        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        with getDBConnection() as con:
+            cur = con.cursor(row_factory=dict_row)
 
         # 2. SAVE THE HASHED PASSWORD to the database, not the raw one
-        cur.execute('''
-        INSERT INTO users (name, username, email, userpassword)
-        VALUES (%s, %s, %s, %s)
-        RETURNING id, username; 
-        ''', (name, username, useremail, hashed_password)) # <-- Swapped userpass for hashed_password
+            cur.execute('''
+            INSERT INTO users (name, username, email, userpassword)
+            VALUES (%s, %s, %s, %s)
+            RETURNING id, username; 
+            ''', (name, username, useremail, hashed_password)) # <-- Swapped userpass for hashed_password
     
-        new_user = cur.fetchone() 
+            new_user = cur.fetchone() 
     
-        con.commit() 
+            # con.commit() 
 
-        if new_user:
-            session['user_id'] = new_user['id']
-            session['username'] = new_user['username']
-            return jsonify({"message": "Registration Successful!"}), 201
+            if new_user:
+                session['user_id'] = new_user['id']
+                session['username'] = new_user['username']
+                return jsonify({"message": "Registration Successful!"}), 201
 
     except errors.UniqueViolation:
         # This catches BOTH duplicate Email and duplicate Username
-        con.rollback() 
-        return jsonify({"error": "Username or Email already exists!"}), 409 
+            con.rollback() 
+            return jsonify({"error": "Username or Email already exists!"}), 409 
 
     except Exception as e:
-        con.rollback()
-        print("Database Error:", e)
-        return jsonify({"error": "Server error. Please try again."}), 500
+            con.rollback()
+            print("Database Error:", e)
+            return jsonify({"error": "Server error. Please try again."}), 500
         
-    finally:
-        # Closing the cursor and connection properly!
-        if 'cur' in locals(): cur.close()
-        if con: con.close()
 
 @app.route("/dashboard")
 def dashboard():
@@ -271,75 +284,74 @@ def dashboard():
     if 'user_id' not in session:
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
     
     # 1. Fetch Concepts
-    cur.execute("SELECT * FROM concepts") 
-    concepts = cur.fetchall()
+        cur.execute("SELECT * FROM concepts") 
+        concepts = cur.fetchall()
 
-    cur.execute("""
+        cur.execute("""
         SELECT 
             COUNT(*) FILTER (WHERE "interval" <= 3) as short,
             COUNT(*) FILTER (WHERE "interval" > 3 AND "interval" <= 14) as medium,
             COUNT(*) FILTER (WHERE "interval" > 14) as long
         FROM user_progress 
         WHERE user_id = %s
-    """, (user_id,))
+        """, (user_id,))
     
-    counts = cur.fetchone()
-    short_term = counts['short']
-    medium_term = counts['medium']
-    long_term = counts['long']
-    print(f"Logged in as: {session.get('user_name')}")
-    total_solved = short_term + medium_term + long_term
-    chart_data = [short_term, medium_term, long_term]
+        counts = cur.fetchone()
+        short_term = counts['short']
+        medium_term = counts['medium']
+        long_term = counts['long']
+        total_solved = short_term + medium_term + long_term
+        chart_data = [short_term, medium_term, long_term]
 
     # 2. RETENTION LOGIC 
-    if total_solved == 0:
+        if total_solved == 0:
         # NEWBIE STATE: Force retention to 0 if no data
-        retention_pct = 0
-        days_label = "Start Now"
-        days_color = "text-primary"
-    else:
+            retention_pct = 0
+            days_label = "Start Now"
+            days_color = "text-primary"
+        else:
         # EXPERT STATE: Calculate real stats
-        cur.execute("""
-            SELECT 
-                AVG(ease_factor) as avg_ease, 
-                MIN(next_review) as next_date
-            FROM user_progress 
-            WHERE user_id = %s AND is_solved = TRUE
-        """, (user_id,))
-        rev_stats = cur.fetchone()
+            cur.execute("""
+                SELECT 
+                    AVG(ease_factor) as avg_ease, 
+                    MIN(next_review) as next_date
+                FROM user_progress 
+                WHERE user_id = %s AND is_solved = TRUE
+            """, (user_id,))
+            rev_stats = cur.fetchone()
 
-        if rev_stats and rev_stats['avg_ease']:
-            avg_ease = float(rev_stats['avg_ease'])
-            next_date = rev_stats['next_date']
-        else:
-            avg_ease = 2.5
-            next_date = None
-        # Calculate Percenta
-        retention_pct = int(min(100, (avg_ease / 3.0) * 100))
-        # Calculate Days Label
-        if next_date:
-            delta = (next_date - date.today()).days
-            if delta < 0:
-                days_label = "Overdue!"
-                days_color = "text-danger"
-            elif delta == 0:
-                days_label = "Due Today"
-                days_color = "text-warning"
+            if rev_stats and rev_stats['avg_ease']:
+                avg_ease = float(rev_stats['avg_ease'])
+                next_date = rev_stats['next_date']
             else:
-                days_label = f"{delta} Days Left"
-                days_color = "text-success"
-        else:
-            days_label = "No Reviews"
-            days_color = "text-muted"
-    cur.close()
-    con.close()
+                avg_ease = 2.5
+                next_date = None
+        # Calculate Percenta
+            retention_pct = int(min(100, (avg_ease / 3.0) * 100))
+        # Calculate Days Label
+            if next_date:
+                delta = (next_date - date.today()).days
+                if delta < 0:
+                    days_label = "Overdue!"
+                    days_color = "text-danger"
+                elif delta == 0:
+                    days_label = "Due Today"
+                    days_color = "text-warning"
+                else:
+                    days_label = f"{delta} Days Left"
+                    days_color = "text-success"
+            else:
+                days_label = "No Reviews"
+                days_color = "text-muted"
+    # cur.close()
+    # con.close()
     # print(f"DEBUG: Total Solved: {total_solved}, Retention: {retention_pct}%")
-    print(session.get("first_name"))
-    return render_template('dashboard.html', 
+        print(session.get("first_name"))
+        return render_template('dashboard.html', 
                            name=session.get("user_name"),
                            retention_pct=retention_pct,
                            days_label=days_label,
@@ -398,15 +410,12 @@ def get_user_stats():
     if 'user_id' not in session:
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        # 1. Get Total Solved 
+        total_solved,streak=getStreak(user_id,con,cur)
     
-    # 1. Get Total Solved 
-    total_solved,streak=getStreak(user_id,con,cur)
-    cur.close()
-    con.close()
-
-    return jsonify({
+        return jsonify({
         "total_solved": total_solved,
         "streak": streak
     })
@@ -421,23 +430,22 @@ def get_questions_api(concept_id):
     if 'user_id' not in session:
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
     
-    query = """
+        query = """
         SELECT q.id, q.title, q.difficulty, q.link,
                CASE WHEN up.question_id IS NOT NULL THEN TRUE ELSE FALSE END as is_solved
         FROM questions q
         LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
         WHERE q.concept_id = %s
     """
-    cur.execute(query, (user_id, concept_id))
+        cur.execute(query, (user_id, concept_id))
 
-    questions = cur.fetchall()
-    difficulty_map = {"Easy": 1, "Medium": 2, "Hard": 3}
-    questions.sort(key=lambda x: difficulty_map.get(x['difficulty'], 4))
-    cur.close()
-    con.close()
+        questions = cur.fetchall()
+        difficulty_map = {"Easy": 1, "Medium": 2, "Hard": 3}
+        questions.sort(key=lambda x: difficulty_map.get(x['difficulty'], 4))
+    
     return jsonify(questions)
 
 @app.route("/api/get_question_details/<int:q_id>")
@@ -448,27 +456,25 @@ def get_question_details(q_id):
         return redirect(url_for('LoginPage'))
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
-        query = """
-            SELECT q.id, q.title, q.description, q.difficulty, q.link,
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        try:
+            query = """
+                SELECT q.id, q.title, q.description, q.difficulty, q.link,
                    CASE WHEN up.question_id IS NOT NULL THEN TRUE ELSE FALSE END as is_solved
             FROM questions q
             LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
             WHERE q.id = %s
         """
-        cur.execute(query, (user_id, q_id))
-        data = cur.fetchone()
-        if not data:
-            return jsonify({"error": "Question not found"}), 404   
-        return jsonify(data)
+            cur.execute(query, (user_id, q_id))
+            data = cur.fetchone()
+            if not data:
+                return jsonify({"error": "Question not found"}), 404   
+            return jsonify(data)
         
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        con.close()
+        except Exception as e:
+                return jsonify({"error": str(e)}), 500
+
 def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key,provider):
     """The Single Source of Truth for Dojo Data."""
     # 1. Background AI Analysis (Silent)
@@ -490,8 +496,7 @@ def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key
         # Using the retriever we built earlier
         print("Good")
         transcript = fetch_session_transcript(user_id, q_id)
-        cur.close()
-        con.close()
+        
         # 3. Only analyze if the user actually engaged (Filter)
         if transcript and len(transcript) >= 4 and api_key:
             analyst = Analyst(Redis.hget(f"user:{session["user_id"]}", "api_key"), provider)
@@ -509,7 +514,7 @@ def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key
             (user_id, question_id, action, confidence_level, time_spent_seconds, ai_bifurcated_score,clarity_of_thought) 
             VALUES (%s, %s, %s, %s, %s, %s,%s)
         """, (user_id, q_id, action_type, confidence, time_seconds, ai_score,clarity))
-        con.commit()
+        # con.commit()
     except Exception as e:
         print(f"activity table Log Error: {e}")
 
@@ -524,98 +529,103 @@ def toggle_solve():
     q_id = data.get("question_id")
     confidence = data.get("confidence")
     time_spent = data.get("time_spent")
-    api_key = data.get("user_api_key")
+    # api_key = data.get("user_api_key")
     provider = data.get("provider")
-    con = getDBConnection()
-    cur = con.cursor()
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
     
-    try:
+        try:
         # 1. Check if it exists
-        cur.execute("SELECT 1 FROM user_progress WHERE user_id = %s AND question_id = %s", (user_id, q_id))
-        exists = cur.fetchone()
+            cur.execute("SELECT 1 FROM user_progress WHERE user_id = %s AND question_id = %s", (user_id, q_id))
+            exists = cur.fetchone()
         
-        if exists:
+            if exists:
             # OPTION A: Reset (Delete row)
-            cur.execute("DELETE FROM user_progress WHERE user_id = %s AND question_id = %s", (user_id, q_id))
+                cur.execute("DELETE FROM user_progress WHERE user_id = %s AND question_id = %s", (user_id, q_id))
             
             # NEW: Remove it from the activity log so they can't farm consistency points by toggling!
-            cur.execute("DELETE FROM activity_log WHERE user_id = %s AND question_id = %s AND action = 'solved'", (user_id, q_id))
+                cur.execute("DELETE FROM activity_log WHERE user_id = %s AND question_id = %s AND action = 'solved'", (user_id, q_id))
             
-            action = "reset"
+                action = "reset"
             
-        else:
+            else:
             # OPTION B: First Solve (Initialize SRS Defaults)
-            tomorrow = date.today() + timedelta(days=1)
+                tomorrow = date.today() + timedelta(days=1)
 
             # Note the double quotes around "interval" for Postgres!
-            query = """
+                query = """
                 INSERT INTO user_progress 
                 (user_id, question_id, solved_at, "interval", ease_factor, repetitions, next_review, is_solved) 
                 VALUES (%s, %s, NOW(), 1, 2.5, 0, %s, TRUE)
             """
-            action="solved"
-            cur.execute(query, (user_id, q_id, tomorrow))
+                action="solved"
+                cur.execute(query, (user_id, q_id, tomorrow))
             # NEW: Drop the 'solved' event into the Activity Log!
             # log_to_activity(user_id,q_id,action,confidence,time_spent,api_key,provider)
-            cur.execute("""
+                cur.execute("""
             INSERT INTO activity_log 
             (user_id, question_id, action, confidence_level, time_spent_seconds) 
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
             """, (user_id, q_id, 'solved', confidence, time_spent))
     
-            activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
+                activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
 
     # 2. Tell the worker: "Hey, go find row ID X and add the AI scores to it"
-            task_payload = {
+                task_payload = {
             "activity_id": activity_id, # The key to the update
             "user_id": user_id,
             "q_id": q_id,
             "provider": provider
             }
-            Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
-            print(time_spent)
-            print("here")
-        con.commit() 
-        return jsonify({"status": "success", "action": action})
-    except Exception as e:
-        con.rollback() 
-        print(f"Error: {e}") # Good for debugging
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        con.close()
+                Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
+            # con.commit() 
+            return jsonify({"status": "success", "action": action})
+        except Exception as e:
+            con.rollback() 
+            print(f"Error: {e}") # Good for debugging
+            return jsonify({"error": str(e)}), 500
+
 @app.route("/api/ask_ai", methods=["POST"])
 def ask_AI():
     user_id = session.get("user_id")
     if 'user_id' not in session:
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    data = request.get_json()
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        data = request.get_json()
     # 1. Grab the variables from the frontend request
-    query = data.get('query')
-    question_id = data.get('question_id')
-    thread_id = data.get('thread_id')
-    provider = data.get('provider')
-    user_api_key = data.get('api_key')
+        query = data.get('query')
+        question_id = data.get('question_id')
+        thread_id = data.get('thread_id')
+        provider = data.get('provider')
+    # user_api_key = data.get('api_key')
     # 2. Get user_id from Flask session! 
-    query_db = "select description from questions where id = %s "
-    cur.execute(query_db, (question_id,))
-    row = cur.fetchone()
+        query_db = "select description from questions where id = %s "
+        cur.execute(query_db, (question_id,))
+        row = cur.fetchone()
     question_description = row['description'] if row else "No description Provided"
     # Optional: If you haven't built the login system yet, uncomment the line below to test it safely:
     # user_id = 1 
     config = {"configurable": {"thread_id": thread_id}}
     if not user_id:
         return jsonify({"error": "Unauthorized. Please log in."}), 401
+    print("fine till here 1")
     try:
         # 3. Trigger LangGraph
+        encrypted_key = Redis.hget(f"user:{session['user_id']}", "api_key")
+        if not encrypted_key:
+            print(True)
+            return jsonify({
+            "error": "API Key Required",
+            "message": "Please go to Settings and add your API key first."
+    }),401
+        print("no issues")
         response = chatbot.invoke({
             'messages': [HumanMessage(content=query)],
             'question': question_description,
-            'user_api_key': Redis.hget(f"user:{session["user_id"]}", "api_key"), 
+            'user_api_key': decrypt_key(encrypted_key), 
             'provider': provider          
         }, config=config)
         
@@ -623,49 +633,62 @@ def ask_AI():
         ai_response = response['messages'][-1].content
 
         # 5. Database Logging (Nested Try/Except)
-        con = getDBConnection()
-        cur = con.cursor()
-
-        try:
+        with getDBConnection() as con:
+            cur = con.cursor(row_factory=dict_row)
+            try:
             # Log the User's message
-            cur.execute("""
+                cur.execute("""
                 INSERT INTO chat_messages (user_id, question_id, thread_id, role, content)
                 VALUES (%s, %s, %s, %s, %s)
             """, (user_id, question_id, thread_id, 'user', query))
 
             # Log the AI's response
-            cur.execute("""
+                cur.execute("""
                 INSERT INTO chat_messages (user_id, question_id, thread_id, role, content)
                 VALUES (%s, %s, %s, %s, %s)
             """, (user_id, question_id, thread_id, 'assistant', ai_response))
-            
-            con.commit() # Save the changes!
-
-        except Exception as db_err:
-            print("Failed to save messages to DB:", db_err)
-            con.rollback()
-        finally:
-            cur.close()
-            con.close()
-
+                # con.commit() # Save the changes!
+            except Exception as db_err:
+                print("Failed to save messages to DB:", db_err)
+                con.rollback()
+      
         # 6. Return the answer to the frontend
-        return jsonify({"answer": ai_response})
-        
+            return jsonify({"answer": ai_response})
     except Exception as e:
         traceback.print_exc()
-        # Handle invalid keys (returns 401 to trigger frontend lock)
-        if "invalid" in str(e).lower() or "api_key" in str(e).lower() or "auth" in str(e).lower():
-            return jsonify({"error": "Invalid API Key"}), 401
-        return jsonify({"error": str(e)}), 500
+        error_msg = str(e).lower()
+        # 1. THE "DEAD END": Quota/Billing Exhausted
+        if "insufficient_quota" in error_msg or "billing" in error_msg or "quota_limit" in error_msg:
+            return jsonify({
+                "code": "API_EXHAUSTED",
+                "error": "Your API provider quota is exhausted."
+            }), 402 # 402 triggers the 'Reset Keys' Modal
+
+        # 2. THE "SPEED BUMP": Rate Limiting
+        elif "429" in error_msg or "rate_limit" in error_msg or "too many requests" in error_msg:
+            return jsonify({
+                "code": "RATE_LIMITED",
+                "error": "You're moving too fast! Please wait a moment."
+            }), 429 # 429 triggers a soft warning/toast
+
+        # 3. THE "SECURITY GATE": Invalid/Auth Issues
+        elif "invalid" in error_msg or "api_key" in error_msg or "auth" in error_msg:
+            return jsonify({
+                "code": "INVALID_KEY",
+                "error": "Your API key is invalid or has been revoked."
+            }), 401 # 401 triggers the login/re-entry lock
+
+        # 4. THE "FALLBACK": Unknown Server Errors
+        return jsonify({"error": "An unexpected AI error occurred."}), 500
 @app.route('/memory')
 def memory():
     user_id = session.get('user_id')
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        try:
         # --- QUERY 1: FETCH REVIEW QUEUE ---
         # Changed c.name -> c.title
-        cur.execute("""
+            cur.execute("""
             SELECT 
                 q.id as question_id, 
                 q.title as question_title, 
@@ -678,10 +701,10 @@ def memory():
             WHERE up.user_id = %s AND up.next_review <= CURRENT_DATE
             ORDER BY up.next_review ASC
         """, (user_id,))
-        review_queue = cur.fetchall()
+            review_queue = cur.fetchall()
         # --- QUERY 2: FETCH STATS ---
         # Changed c.name -> c.title here too
-        cur.execute("""
+            cur.execute("""
             SELECT 
                 c.title as concept_title,   -- <--- FIXED
                 COUNT(up.question_id) as solved_count, 
@@ -691,26 +714,24 @@ def memory():
             LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
             GROUP BY c.id, c.title          -- <--- FIXED: Group by title
         """, (user_id,))
-        stats_raw = cur.fetchall()
-        stats = []
+            stats_raw = cur.fetchall()
+            stats = []
         # Process Stats
-        for row in stats_raw:
-            name = row['concept_title'] 
-            solved = row['solved_count']
-            ease = float(row['avg_ease'])
-            if solved == 0: signal = 0
-            elif ease >= 2.6: signal = 4
-            elif ease >= 2.1: signal = 3
-            elif ease >= 1.5: signal = 2
-            else: signal = 1
-            stats.append({"name": name, "solved": solved, "signal": signal})
-        return render_template('retention.html', queue=review_queue, stats=stats)
-    except Exception as e:
-        print(f"Error: {e}")
-        return "Database Error", 500
-    finally:
-        cur.close()
-        con.close()
+            for row in stats_raw:
+                name = row['concept_title'] 
+                solved = row['solved_count']
+                ease = float(row['avg_ease'])
+                if solved == 0: signal = 0
+                elif ease >= 2.6: signal = 4
+                elif ease >= 2.1: signal = 3
+                elif ease >= 1.5: signal = 2
+                else: signal = 1
+                stats.append({"name": name, "solved": solved, "signal": signal})
+            return render_template('retention.html', queue=review_queue, stats=stats)
+        except Exception as e:
+            print(f"Error: {e}")
+            return "Database Error", 500
+
 @app.route('/api/review', methods=['POST'])
 def api_review():
     # 1. Security Check
@@ -724,26 +745,25 @@ def api_review():
     quality = int(data.get('quality', 0))  # 0, 3, 4, 5
     # Get time from 'time_spent' (matching the JS payload)
     time_seconds = int(data.get('time_spent', 0))
-    api_key = data.get("user_api_key")
     provider = data.get("provider")
-    con = getDBConnection()
-    cur = con.cursor()
-    try:
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        try:
         # 3. Fetch Current Stats
-        cur.execute("""
+            cur.execute("""
             SELECT "interval", ease_factor, repetitions 
             FROM user_progress 
             WHERE user_id = %s AND question_id = %s
         """, (user_id, question_id))
-        record = cur.fetchone()
+            record = cur.fetchone()
         # Defaults (Safety net if row exists but values are null)
-        curr_ivl = record[0] if record and record[0] else 1
-        curr_ease = record[1] if record and record[1] else 2.5
-        curr_reps = record[2] if record and record[2] else 0
+            curr_ivl = record[0] if record and record[0] else 1
+            curr_ease = record[1] if record and record[1] else 2.5
+            curr_reps = record[2] if record and record[2] else 0
         # 4. Run the Algorithm
-        new_ivl, new_ease, new_reps, new_date = sm2_algorithm(quality, curr_ivl, curr_ease, curr_reps)
+            new_ivl, new_ease, new_reps, new_date = sm2_algorithm(quality, curr_ivl, curr_ease, curr_reps)
         # 5. Update Database
-        cur.execute("""
+            cur.execute("""
             UPDATE user_progress 
             SET 
                 "interval" = %s,
@@ -756,38 +776,35 @@ def api_review():
         # ... your existing code that updates user_progress ...
 
 # NEW: Drop a record into the activity log
-        action = "reviewd"
+            action = "reviewd"
         # log_to_activity(user_id,question_id,action,quality,time_seconds,api_key,provider=provider)
-        cur.execute("""
+            cur.execute("""
             INSERT INTO activity_log 
             (user_id, question_id, action, confidence_level, time_spent_seconds) 
             VALUES (%s, %s, %s, %s, %s)
             RETURNING id
             """, (user_id, question_id, action, quality, time_seconds))
     
-        activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
+            activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
 
     # 2. Tell the worker: "Hey, go find row ID X and add the AI scores to it"
-        task_payload = {
+            task_payload = {
             "activity_id": activity_id, # The key to the update
             "user_id": user_id,
             "q_id": question_id,
             "provider": provider
             }
-        Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
+            Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
         # Change 'solved' to 'reviewed' for your review route
 # Make sure you con.commit() after this!
-        con.commit()
-        return jsonify({"status": "success", "new_date": str(new_date)})
+            # con.commit()
+            return jsonify({"status": "success", "new_date": str(new_date)})
 
-    except Exception as e:
-        con.rollback()
-        print("Error in SRS update:", e)
-        return jsonify({"error": str(e)}), 500
+        except Exception as e:
+            con.rollback()
+            print("Error in SRS update:", e)
+            return jsonify({"error": str(e)}), 500
         
-    finally:
-        cur.close()
-        con.close()
 
 @app.route('/api/roadmap-data')
 def roadmap_data():
@@ -795,11 +812,11 @@ def roadmap_data():
     if 'user_id' not in session:
         # This "asks" them to login by sending them to the login page
         return redirect(url_for('LoginPage'))
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
 
     # --- FETCH CONCEPTS & PROGRESS ---
-    cur.execute("""
+        cur.execute("""
         SELECT 
             c.id, 
             c.title, 
@@ -811,13 +828,9 @@ def roadmap_data():
         GROUP BY c.id, c.title
         ORDER BY c.id ASC
     """, (user_id,))
-    
-    concepts = cur.fetchall()
-    cur.close()
-    con.close()
-    
+        concepts = cur.fetchall()
     # Return raw JSON data
-    return jsonify(concepts)
+        return jsonify(concepts)
 @app.route('/roadmap')
 def roadmap():
     return render_template('roadmap.html')
@@ -840,7 +853,6 @@ def getUserInfo(user_id,cur):
     print(user_row)
     # 3. Safety check: if the user doesn't exist, return None
     if not user_row:
-        print("Hiiiii")
         return None
     # 4. Map the raw SQL tuple into a clean Python dictionary
     # (Matches the exact order of your SELECT statement above)
@@ -909,25 +921,16 @@ def api_profile():
         return redirect(url_for('LoginPage'))
     
     # 2. Open Tools
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
     # 3. Fetch Data
-    total_solved, streak = getStreak(user_id, con, cur)
-    userinfo = getUserInfo(user_id, cur)
-    userLogs = getLogs(user_id,cur)
-    # 4. Close Tools (Faucet first, then Main!)
-    cur.close()
-    con.close()
-    
+        total_solved, streak = getStreak(user_id, con, cur)
+        userinfo = getUserInfo(user_id, cur)
+        userLogs = getLogs(user_id,cur)
     # Safety Check: If user isn't in the database, don't crash
-    if not userinfo:
-        return jsonify({"error": "User not found"}), 404
-    # if not userLogs:
-    #     return jsonify({"error": "User not found"}), 404
-
-
-    # 5. Format Data
+        if not userinfo:
+            return jsonify({"error": "User not found"}), 404
+    
     data = {
         "user": {
             "name": userinfo['name'],
@@ -955,105 +958,99 @@ def change_password():
     if not current_password or not new_password:
         return jsonify({"error": "Both fields are required."}), 400
 
-    con = None
-    cur = None
     
     try:
-        con = getDBConnection()
-        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        with getDBConnection() as con:
+            cur = con.cursor(row_factory=dict_row)
 
         # 2. Get their current password from the DB
-        cur.execute("SELECT userpassword FROM users WHERE id = %s", (user_id,))
-        user = cur.fetchone()
+            cur.execute("SELECT userpassword FROM users WHERE id = %s", (user_id,))
+            user = cur.fetchone()
 
-        if not user:
-            return jsonify({"error": "User not found"}), 404
+            if not user:
+                return jsonify({"error": "User not found"}), 404
 
-        current_db_password = user['userpassword']
-        is_valid = False
+            current_db_password = user['userpassword']
+            is_valid = False
 
         # 3. Bilingual Check (handles both hashed and old plaintext passwords)
-        if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
-            is_valid = check_password_hash(current_db_password, current_password)
-        else:
-            is_valid = (current_db_password == current_password)
+            if current_db_password.startswith('scrypt:') or current_db_password.startswith('pbkdf2:'):
+                is_valid = check_password_hash(current_db_password, current_password)
+            else:
+                is_valid = (current_db_password == current_password)
 
-        if not is_valid:
-            return jsonify({"error": "Incorrect current password"}), 401
+            if not is_valid:
+                return jsonify({"error": "Incorrect current password"}), 401
 
         # 4. Hash the NEW password and update the database
-        hashed_new_password = generate_password_hash(new_password)
+            hashed_new_password = generate_password_hash(new_password)
         
-        cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (hashed_new_password, user_id))
-        con.commit() 
-
-        return jsonify({"success": True, "message": "Password updated securely!"})
+            cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (hashed_new_password, user_id))
+            return jsonify({"success": True, "message": "Password updated securely!"})
 
     except Exception as e:
-        if con: con.rollback()
+        # if con: con.rollback()
         print(f"Database error during password change: {e}")
         return jsonify({"error": "Server error. Could not update password."}), 500
         
-    finally:
-        if cur: cur.close()
-        if con: con.close()
+
 @app.route('/journey')
 def journey():
     # Make sure they are logged in!
     if 'user_id' not in session:
         return redirect('/login')
     return render_template('journey.html')
-@app.route('/api/journey')
-def api_journey():
-    user_id = session.get('user_id')
-    if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
+# @app.route('/api/journey')
+# def api_journey():
+#     user_id = session.get('user_id')
+#     if not user_id:
+#         return jsonify({"error": "Unauthorized"}), 401
 
-    con = None
-    cur = None
-    try:
-        con = getDBConnection()
-        cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        # The Ultimate SQL Query:
-        # Grabs all concepts, counts total available questions, 
-        # counts how many THIS user solved, and creates a comma-separated list of their solved question titles!
-        cur.execute("""
-    SELECT 
-        c.title AS concept_title,
-        COUNT(DISTINCT q.id) AS total_questions,
-        COUNT(DISTINCT CASE WHEN up.is_solved = TRUE THEN up.question_id ELSE NULL END) AS solved_questions,
-        STRING_AGG(DISTINCT CASE WHEN up.is_solved = TRUE THEN q.title ELSE NULL END, ', ') AS solved_list
-    FROM concepts c
-    LEFT JOIN questions q ON c.id = q.concept_id
-    LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
-    GROUP BY c.id, c.title
-""", (user_id,))
-        db_results = cur.fetchall()
-        # print(db_results)
-        journey_data = {}
-        for row in db_results:
-            title = row['concept_title']
-            # Format the text for the hover tooltip
-            details = "Locked. Solve previous concepts first."
-            if row['solved_questions'] > 0:
-                details = f"Solved: {row['solved_list']}"
-            elif row['total_questions'] == 0:
-                details = "Questions coming soon."
-            # Use the EXACT concept title from your database as the dictionary key
-            journey_data[title] = {
-                "solved": row['solved_questions'],
-                "total": row['total_questions'],
-                "details": details
-            }
+#     con = None
+#     cur = None
+#     try:
+#         con = getDBConnection()
+#         cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+#         # The Ultimate SQL Query:
+#         # Grabs all concepts, counts total available questions, 
+#         # counts how many THIS user solved, and creates a comma-separated list of their solved question titles!
+#         cur.execute("""
+#     SELECT 
+#         c.title AS concept_title,
+#         COUNT(DISTINCT q.id) AS total_questions,
+#         COUNT(DISTINCT CASE WHEN up.is_solved = TRUE THEN up.question_id ELSE NULL END) AS solved_questions,
+#         STRING_AGG(DISTINCT CASE WHEN up.is_solved = TRUE THEN q.title ELSE NULL END, ', ') AS solved_list
+#     FROM concepts c
+#     LEFT JOIN questions q ON c.id = q.concept_id
+#     LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
+#     GROUP BY c.id, c.title
+# """, (user_id,))
+#         db_results = cur.fetchall()
+#         # print(db_results)
+#         journey_data = {}
+#         for row in db_results:
+#             title = row['concept_title']
+#             # Format the text for the hover tooltip
+#             details = "Locked. Solve previous concepts first."
+#             if row['solved_questions'] > 0:
+#                 details = f"Solved: {row['solved_list']}"
+#             elif row['total_questions'] == 0:
+#                 details = "Questions coming soon."
+#             # Use the EXACT concept title from your database as the dictionary key
+#             journey_data[title] = {
+#                 "solved": row['solved_questions'],
+#                 "total": row['total_questions'],
+#                 "details": details
+#             }
 
-        return jsonify(journey_data), 200
+#         return jsonify(journey_data), 200
 
-    except Exception as e:
-        print("Error fetching journey data:", e)
-        return jsonify({"error": "Failed to load journey"}), 500
-    finally:
-        if cur: cur.close()
-        if con: con.close()
+    # except Exception as e:
+    #     print("Error fetching journey data:", e)
+    #     return jsonify({"error": "Failed to load journey"}), 500
+    # finally:
+    #     if cur: cur.close()
+    #     if con: con.close()
 @app.route("/question/<int:q_id>")
 def question_page(q_id):
     user_id = session.get("user_id")
@@ -1072,14 +1069,14 @@ def get_similar(q_id):
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
         
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
     
-    try:
+        try:
         # 1. Get concept_id of current question 
         # 2. Find 3 other questions in that concept NOT solved by this user
         # 3. Exclude the current question itself
-        query = """
+            query = """
             SELECT id, title, difficulty 
             FROM questions 
             WHERE concept_id = (SELECT concept_id FROM questions WHERE id = %s)
@@ -1091,17 +1088,15 @@ def get_similar(q_id):
             ORDER BY RANDOM() 
             LIMIT 3
         """
-        cur.execute(query, (q_id, q_id, user_id))
-        similar_questions = cur.fetchall()
+            cur.execute(query, (q_id, q_id, user_id))
+            similar_questions = cur.fetchall()
         
-        return jsonify(similar_questions)
-        
-    except Exception as e:
-        print(f"Error fetching similar: {e}")
-        return jsonify({"error": "Could not fetch recommendations"}), 500
-    finally:
-        cur.close()
-        con.close()
+            return jsonify(similar_questions)
+
+        except Exception as e:
+            print(f"Error fetching similar: {e}")
+            return jsonify({"error": "Could not fetch recommendations"}), 500
+
 app.config.update(
     SESSION_COOKIE_SAMESITE='Lax',
     SESSION_COOKIE_SECURE=False, # ngrok uses HTTPS, so this must be True
@@ -1114,11 +1109,11 @@ def api_consistency():
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    con = getDBConnection()
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    try:
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        try:
         # Grab the raw stats from the last 30 days
-        cur.execute("""
+            cur.execute("""
             SELECT 
                 COUNT(DISTINCT DATE(created_at)) AS active_days,
                 COUNT(CASE WHEN action = 'solved' THEN 1 END) AS solves,
@@ -1126,38 +1121,36 @@ def api_consistency():
             FROM activity_log
             WHERE user_id = %s AND created_at >= NOW() - INTERVAL '30 days'
         """, (user_id,))
-        stats = cur.fetchone()
+            stats = cur.fetchone()
 
-        active_days = stats['active_days'] or 0
-        solves = stats['solves'] or 0
-        reviews = stats['reviews'] or 0
+            active_days = stats['active_days'] or 0
+            solves = stats['solves'] or 0
+            reviews = stats['reviews'] or 0
 
         # --- THE MATH ---
         # 1. Habit (50 pts): Max points if active 20 out of the last 30 days
-        habit_score = min(50, (active_days / 20.0) * 50)
+            habit_score = min(50, (active_days / 20.0) * 50)
         
         # 2. Discipline (50 pts): Max points if you do at least 1 review for every 2 new solves
-        discipline_score = 0
-        if solves > 0:
-            discipline_score = min(50, (reviews / (solves * 0.5)) * 50)
-        elif solves == 0 and reviews > 0:
-            discipline_score = 50 # Reviewing without solving is still great discipline
+            discipline_score = 0
+            if solves > 0:
+                discipline_score = min(50, (reviews / (solves * 0.5)) * 50)
+            elif solves == 0 and reviews > 0:
+                discipline_score = 50 # Reviewing without solving is still great discipline
             
-        score = round(habit_score + discipline_score)
+            score = round(habit_score + discipline_score)
         
-        return jsonify({
+            return jsonify({
             "score": score,
             "active_days": active_days,
             "solves": solves,
             "reviews": reviews
         }), 200
 
-    except Exception as e:
-        print(f"Consistency Error: {e}")
-        return jsonify({"error": str(e)}), 500
-    finally:
-        cur.close()
-        con.close()
+        except Exception as e:
+            print(f"Consistency Error: {e}")
+            return jsonify({"error": str(e)}), 500
+
 @app.route('/api/chat_history/<int:question_id>', methods=['GET'])
 def get_chat_history(question_id):
     # 1. Grab the user ID (Adjust this based on how your app handles logins!)
@@ -1169,13 +1162,12 @@ def get_chat_history(question_id):
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
 
-    con = getDBConnection()
-    # 2. RealDictCursor is crucial here. It formats the SQL rows into perfect Python dictionaries.
-    cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
 
-    try:
+        try:
         # 3. Fetch the messages in chronological order so the chat reads top-to-bottom
-        cur.execute("""
+            cur.execute("""
             SELECT role, content, thread_id 
             FROM chat_messages 
             WHERE thread_id = (
@@ -1188,19 +1180,15 @@ def get_chat_history(question_id):
             ORDER BY created_at ASC
         """, (user_id, question_id))
         
-        history = cur.fetchall()
+            history = cur.fetchall()
         
         # 4. Return the data as a clean JSON package for the frontend
-        return jsonify({"history": history}), 200
+            return jsonify({"history": history}), 200
 
-    except Exception as e:
-        print("Chat History Error:", e)
-        return jsonify({"error": "Failed to fetch history"}), 500
-        
-    finally:
-        # 5. Always close your connections!
-        cur.close()
-        con.close()
+        except Exception as e:
+            print("Chat History Error:", e)
+            return jsonify({"error": "Failed to fetch history"}), 500
+
 
 def fetch_session_transcript(user_id, q_id):
     """
@@ -1208,34 +1196,34 @@ def fetch_session_transcript(user_id, q_id):
     Returns a list of HumanMessage and AIMessage objects.
     """
     try:
-        con = getDBConnection()
-        cur = con.cursor()
+        with getDBConnection() as con:
+            cur = con.cursor(row_factory=dict_row)
         # We grab all messages for this user/question pair
         # typically filtered by the most recent session window
-        cur.execute("""
+            cur.execute("""
             SELECT role, content 
             FROM chat_messages 
             WHERE user_id = %s AND question_id = %s
             ORDER BY id ASC
         """, (user_id, q_id))
-        rows = cur.fetchall()
+            rows = cur.fetchall()
         # Mapping to LangChain objects
-        transcript = []
-        for role, content in rows:
-            if role == 'user':
-                transcript.append(HumanMessage(content=content))
-            else:
-                transcript.append(AIMessage(content=content))
-        return transcript
+            transcript = []
+            for role, content in rows:
+                if role == 'user':
+                    transcript.append(HumanMessage(content=content))
+                else:
+                    transcript.append(AIMessage(content=content))
+            return transcript
     except Exception as e:
         print(f"Database Retrieval Error: {e}")
         return []
 def get_skill_matrix_stats(user_id):
-    con = getDBConnection()
-    cur = con.cursor()
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
     
     # 1. Pull the individual averages for ALL relevant columns
-    cur.execute("""
+        cur.execute("""
         SELECT 
             c.title AS concept_title,
             COUNT(al.id) AS solved_count,
@@ -1249,9 +1237,8 @@ def get_skill_matrix_stats(user_id):
         GROUP BY c.title
     """, (user_id,))
     
-    rows = cur.fetchall()
-    cur.close()
-    con.close()
+        rows = cur.fetchall()
+  
 
     formatted_data = []
     for r in rows:
@@ -1280,10 +1267,10 @@ def get_skill_matrix_stats(user_id):
 
     return formatted_data
 def get_concept_breakdown(user_id):
-    con = getDBConnection()
-    cur = con.cursor()
-    try:
-        cur.execute("""
+    with getDBConnection() as con:
+        cur = con.cursor(row_factory=dict_row)
+        try:
+            cur.execute("""
             SELECT 
                 c.title AS concept,
                 q.title AS q_title,
@@ -1295,36 +1282,33 @@ def get_concept_breakdown(user_id):
             WHERE al.user_id = %s
             ORDER BY c.title, al.created_at DESC
         """, (user_id,))
-        rows = cur.fetchall()
-        grouped = {}
-        for concept, q_title, time_sec, conf in rows:
+            rows = cur.fetchall()
+            grouped = {}
+            for concept, q_title, time_sec, conf in rows:
             # 1. Fallbacks for missing text data
-            concept_name = concept if concept else "Uncategorized"
-            question_name = q_title if q_title else "Unknown Question"
+                concept_name = concept if concept else "Uncategorized"
+                question_name = q_title if q_title else "Unknown Question"
             # 2. NULL-Safety for Math (This stops the crashes!)
-            safe_time = int(time_sec) if time_sec is not None else 0
-            safe_conf = float(conf) if conf is not None else 0.0
+                safe_time = int(time_sec) if time_sec is not None else 0
+                safe_conf = float(conf) if conf is not None else 0.0
             # Initialize the group
-            if concept_name not in grouped:
-                grouped[concept_name] = []
+                if concept_name not in grouped:
+                    grouped[concept_name] = []
             # Format time nicely (Shows "< 1m" if they solved it super fast)
-            mins = safe_time // 60
-            time_display = f"{mins}m" if mins > 0 else "< 1m"
-            grouped[concept_name].append({
+                mins = safe_time // 60
+                time_display = f"{mins}m" if mins > 0 else "< 1m"
+                grouped[concept_name].append({
                 "title": question_name,
                 "time": time_display,
                 "autonomy": f"{int(safe_conf * 20)}%" 
             })
-        return grouped
-    except Exception as e:
+            return grouped
+        except Exception as e:
         # If the SQL fails, print the exact error so you can debug it, 
         # but return an empty dictionary so the UI doesn't completely break!
-        print(f"💥 Error in get_concept_breakdown: {e}")
-        return {} 
-    finally:
-        # This guarantees the connection closes EVEN IF the code crashes
-        cur.close()
-        con.close()
+            print(f"💥 Error in get_concept_breakdown: {e}")
+            return {} 
+
 @app.route('/api/insights/matrix', methods=['GET'])
 def get_insights_data():
     user_id = session.get("user_id")
@@ -1360,9 +1344,10 @@ def get_ai_summary():
         # 1. Grab the exact same stats we use for the Radar Chart
         stats = get_skill_matrix_stats(user_id)
         data = request.get_json()
+
         api_key = Redis.hget(f"user:{session["user_id"]}", "api_key")
         provider = data.get("provider")
-        
+        decrypted_key = decrypt_key(api_key)
         # 2. If they haven't solved anything yet, skip the AI call to save tokens
         if not stats:
             return jsonify({
@@ -1373,12 +1358,7 @@ def get_ai_summary():
         # 3. Smash the stats into a compact string for the AI to read
         stats_str = ", ".join([f"{s['label']}: {s['mastery']}% Mastery ({s['count']} solved)" for s in stats])
         
-        # 4. Wake up the Coach AI
-        # Assuming you stored these in session during login, adjust if you pull from the DB!
-        # api_key = session.get("api_key") 
-        # provider = session.get("provider", "gemini") 
-        
-        coach = InsightCoach(api_key, provider)
+        coach = InsightCoach(decrypted_key, provider)
         ai_result = coach.get_summary(stats_str)
 
         if ai_result:
@@ -1407,13 +1387,56 @@ def set_api_key():
     user_id = session.get("user_id")
     
     if api_key:
+        encrypted_val = encrypt_key(api_key)
         Redis.hset(f"user:{user_id}", mapping={
-            "api_key": api_key,
+            "api_key": encrypted_val,
             "provider": provider
         })
         return jsonify({"status": "success"}), 200
     
     return jsonify({"status": "error", "message": "No key provided"}), 400
+@app.route('/api/user-journey', methods=['GET'])
+def get_user_journey():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        with getDBConnection() as con:
+            cur = con.cursor(row_factory=dict_row)
+        
+        # JOINING user_progress -> questions -> concepts
+            query = """
+            SELECT 
+                c.title, 
+                c.icon, 
+                MIN(up.solved_at) AS achieved_at,
+                COUNT(up.question_id) AS questions_mastered
+            FROM user_progress up
+            JOIN questions q ON up.question_id = q.id
+            JOIN concepts c ON q.concept_id = c.id
+            WHERE up.user_id = %s
+            GROUP BY c.id, c.title, c.icon
+            ORDER BY achieved_at ASC;
+        """
+        
+            cur.execute(query, (user_id,))
+            rows = cur.fetchall()
+        
+        journey_data = []
+        for row in rows:
+            journey_data.append({
+                "title": row[0],
+                "icon": row[1],
+                "achieved_at": row[2].isoformat() if row[2] else None,
+                "count": row[3]
+            })
+            
+        
+        return jsonify(journey_data)
+
+    except Exception as e:
+        print(f"Journey API Error: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 if __name__ == "__main__":
-    app.secret_key="THERRANGBHARUCH"
     app.run(debug=True)

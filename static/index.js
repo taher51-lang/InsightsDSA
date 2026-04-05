@@ -3,8 +3,8 @@ const handleLogin = async () => {
     const user_pass = document.getElementById("user_pass").value
     console.log(user_name)
     console.log(user_pass)
-
-    const response = await fetch("/login", {
+    
+    const response = await apiCall("/login", {
         method: "POST",
         headers: { "Content-Type": "application/JSON" },
         body: JSON.stringify({
@@ -169,3 +169,19 @@ const passRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;    // --- 1. NAME VALIDATION 
         }
     });
 });
+async function apiCall(url, options = {}) {
+    // 1. Grab the token from the meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // 2. Automatically add the header to whatever options were passed
+    const secureOptions = {
+        ...options, // Keep existing method, body, etc.
+        headers: {
+            ...options.headers, // Keep existing headers
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    return fetch(url, secureOptions);
+}

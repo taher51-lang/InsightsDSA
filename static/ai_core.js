@@ -51,7 +51,7 @@ async function saveAIToLocalStorage() {
 
     // --- NEW: Send the real key to the Backend/Redis ---
     try {
-        const response = await fetch('/api/set-key', {
+        const response = await apiCall('/api/set-key', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ api_key: apiKey, provider: provider })
@@ -116,4 +116,80 @@ function openAIEditModal() {
     const modalElement = document.getElementById('aiSettingsModal');
     const aiModal = bootstrap.Modal.getOrCreateInstance(modalElement);
     aiModal.show();
+}
+function triggerErrorUI(status) {
+    const modalEl = document.getElementById('aiErrorModal');
+    if (!modalEl) return; // Safety check
+
+    const title = document.getElementById('error-modal-title');
+    const msg = document.getElementById('error-modal-message');
+    const actions = document.getElementById('error-modal-actions');
+    const iconContainer = document.getElementById('error-modal-icon');
+    
+    const errorModal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+    if (status === 429) {
+        // --- CASE: RATE LIMIT (Soft Warning) ---
+        title.innerText = "Limit Reached";
+        msg.innerText = "You're sending requests faster than the AI can process. Please wait a minute before trying again.";
+        iconContainer.className = "mb-4 d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning";
+        iconContainer.style.width = "60px"; iconContainer.style.height = "60px"; iconContainer.style.borderPadding = "15px";
+        iconContainer.innerHTML = '<i class="bi bi-clock-history fs-3"></i>';
+        
+        actions.innerHTML = `
+            <button type="button" class="btn btn-dark rounded-pill py-2 fw-bold" data-bs-dismiss="modal">Got it</button>
+        `;
+    } 
+    else if (status === 402 || status === 401) {
+        // --- CASE: QUOTA/AUTH (Hard Reset) ---
+        const isQuota = (status === 402);
+        title.innerText = isQuota ? "Quota Exhausted" : "Invalid API Key";
+        msg.innerText = isQuota 
+            ? "Your AI provider balance is empty. Please top up or provide a new key."
+            : "Your API key is invalid or has expired. Please re-configure your engine.";
+        
+        iconContainer.className = "mb-4 d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger";
+        iconContainer.style.width = "60px"; iconContainer.style.height = "60px"; iconContainer.style.borderPadding = "15px";
+        iconContainer.innerHTML = '<i class="bi bi-shield-lock-fill fs-3"></i>';
+        
+        actions.innerHTML = `
+            <button type="button" class="btn btn-dark rounded-pill py-2 fw-bold" onclick="handleHardReset()">Update Configuration</button>
+            <button type="button" class="btn btn-link text-muted text-decoration-none" data-bs-dismiss="modal">Cancel</button>
+        `;
+
+        // 🟢 CRITICAL: Sync with your existing locking logic
+        localStorage.removeItem('ai_api_key');
+        localStorage.removeItem('ai_provider');
+        checkAIAccess(); // This immediately flips the 'Lock' overlay in the background
+    }
+
+    errorModal.show();
+}
+
+/**
+ * Bridges the Error Modal to the Settings Modal
+ */
+function handleHardReset() {
+    const errorModalEl = document.getElementById('aiErrorModal');
+    const errorModalInstance = bootstrap.Modal.getInstance(errorModalEl);
+    if (errorModalInstance) errorModalInstance.hide();
+    
+    // Call your existing function to open the settings
+    openAIEditModal(); 
+}
+async function apiCall(url, options = {}) {
+    // 1. Grab the token from the meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // 2. Automatically add the header to whatever options were passed
+    const secureOptions = {
+        ...options, // Keep existing method, body, etc.
+        headers: {
+            ...options.headers, // Keep existing headers
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    return fetch(url, secureOptions);
 }
