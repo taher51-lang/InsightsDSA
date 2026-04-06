@@ -10,7 +10,7 @@ pool = ConnectionPool(
     conninfo=DB_URI,
     min_size=2,
     max_size=10,
-    kwargs={"autocommit": True}
+    kwargs={"autocommit": False}
 )
 
 def getDBConnection():

@@ -46,7 +46,7 @@ while True:
                     WHERE id = %s
                 """, (ai_score, clarity, task['activity_id']))
         
-            # con.commit()
+            con.commit()
             print(f"✨ Row {task['activity_id']} enriched with AI scores!")
     except Exception as e:
         print(f"Worker Error: {e}")

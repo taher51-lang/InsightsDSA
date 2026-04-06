@@ -266,6 +266,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         chatFlow.appendChild(div);
         chatFlow.scrollTop = chatFlow.scrollHeight;
     }
+    
 
     sendBtn.onclick = askAI;
     aiInput.onkeypress = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); askAI(); } };

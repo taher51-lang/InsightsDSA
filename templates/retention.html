@@ -263,7 +263,6 @@ async function submitReview(quality) {
         user_api_key:localStorage.getItem("ai_api_key")
     };
     const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-    console.log(csrfToken)
     try {
         const res = await fetch('/api/review', {
             method: 'POST',

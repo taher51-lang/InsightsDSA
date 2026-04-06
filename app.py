@@ -158,7 +158,7 @@ def google_callback():
                 user_id = result[0]
 
     # 4. Commit and set session
-        # con.commit()
+        con.commit()
         session["user_id"] = user_id
         session["user_id"] = user_id
     # Set session data for the UI
@@ -184,7 +184,7 @@ def login():
         with getDBConnection() as con:
             # con = getDBConnection()
             with con.cursor(row_factory=dict_row) as cur:
-                cur.execute("SELECT id, username, name, userpassword FROM users WHERE username = %s", (username,))
+                cur.execute("SELECT id, username, name, userpassword ,google_id FROM users WHERE username = %s", (username,))
                 result = cur.fetchone()
                 if not result:
                     return jsonify({"error": "Invalid Credentials"}), 401
@@ -213,7 +213,7 @@ def login():
                 if needs_upgrade:
                     new_hashed_password = generate_password_hash(userpass)
                     cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (new_hashed_password, result['id']))
-                # con.commit()
+                    con.commit()
                     print(f"Security Upgrade Complete: Hashed password for user '{username}'")
             # 4. Set Session and Log Them In
                 session['user_id'] = result['id'] 
@@ -258,7 +258,7 @@ def register():
     
                 new_user = cur.fetchone() 
     
-            # con.commit() 
+                con.commit() 
 
                 if new_user:
                     session['user_id'] = new_user['id']
@@ -566,7 +566,7 @@ def toggle_solve():
                     "provider": provider
                     }
                         Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
-                    # con.commit() 
+                    con.commit() 
                     return jsonify({"status": "success", "action": action})
                 except Exception as e:
                     print(f"Error: {e}") # Good for debugging
@@ -631,7 +631,7 @@ def ask_AI():
                     INSERT INTO chat_messages (user_id, question_id, thread_id, role, content)
                     VALUES (%s, %s, %s, %s, %s)
                 """, (user_id, question_id, thread_id, 'assistant', ai_response))
-                    # con.commit() # Save the changes!
+                    con.commit() # Save the changes!
                 except Exception as db_err:
                     print("Failed to save messages to DB:", db_err)    
         # 6. Return the answer to the frontend
@@ -779,7 +779,7 @@ def api_review():
                 Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
             # Change 'solved' to 'reviewed' for your review route
     # Make sure you con.commit() after this!
-                # con.commit()
+                con.commit()
                 return jsonify({"status": "success", "new_date": str(new_date)})
 
             except Exception as e:
@@ -960,6 +960,7 @@ def change_password():
                 hashed_new_password = generate_password_hash(new_password)
             
                 cur.execute("UPDATE users SET userpassword = %s WHERE id = %s", (hashed_new_password, user_id))
+                con.commit()
                 return jsonify({"success": True, "message": "Password updated securely!"})
 
     except Exception as e:
