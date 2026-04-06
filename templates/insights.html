@@ -357,7 +357,7 @@
     const provider = localStorage.getItem('user_provider') || 'gemini'; 
 
     try {
-        const response = await fetch('/api/insights/ai-summary', {
+        const response = await apiCall('/api/insights/ai-summary', {
             method: 'POST', // Changed to POST
             headers: {
                 'Content-Type': 'application/json'
@@ -379,6 +379,22 @@
     } catch (error) {
         console.error("Fetch failed:", error);
     }
+}
+async function apiCall(url, options = {}) {
+    // 1. Grab the token from the meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+    // 2. Automatically add the header to whatever options were passed
+    const secureOptions = {
+        ...options, // Keep existing method, body, etc.
+        headers: {
+            ...options.headers, // Keep existing headers
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    };
+
+    return fetch(url, secureOptions);
 }
 </script>
 </body>

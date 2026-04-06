@@ -215,7 +215,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         try {
             const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            const res = await apiCall('/api/ask_ai', {
+            const res = await fetch('/api/ask_ai', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' ,'X-CSRFToken': csrfToken},
                 body: JSON.stringify({

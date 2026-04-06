@@ -2,12 +2,9 @@ import redis
 import json
 from app import Analyst, fetch_session_transcript,Redis as r,decrypt_key
 from db import getDBConnection,pool
-
-
 while True:
     _, task_json = r.brpop("ai_analysis_queue")
     task = json.loads(task_json)
-    
     user_id = task['user_id']
     q_id = task['q_id']
     api_key = None

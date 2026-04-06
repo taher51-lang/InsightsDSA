@@ -262,11 +262,12 @@ async function submitReview(quality) {
         provider:localStorage.getItem("ai_provider"), // Converting to seconds for the backend
         user_api_key:localStorage.getItem("ai_api_key")
     };
-
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    console.log(csrfToken)
     try {
         const res = await fetch('/api/review', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
             body: JSON.stringify(payload)
         });
 
