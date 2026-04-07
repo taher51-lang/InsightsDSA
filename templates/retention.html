@@ -291,7 +291,7 @@ async function submitReview(quality) {
                 .then(res => res.json())
                 .then(data => {
                     list.innerHTML = data.map(item => `
-                <a href="/question/${item.id}" class="list-group-item list-group-item-action bg-transparent text-dark fw-bold border-secondary d-flex justify-content-between align-items-center py-3">
+                <a href="{{ url_for('question_page', q_id=0) }}".replace('0', item.id) class="list-group-item list-group-item-action bg-transparent text-dark fw-bold border-secondary d-flex justify-content-between align-items-center py-3">
                     <span>${item.title}</span>
                     <span class="btn btn-sm btn-primary rounded-pill">Solve</span>
                 </a>

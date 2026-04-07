@@ -30,13 +30,6 @@ Redis = redis.Redis(
     decode_responses=True
 )
 cipher_suite = Fernet(MASTER_KEY)
-# pool = ConnectionPool(
-#     conninfo=DB_URI,
-#     min_size=2,    # Keep 2 connections ready at all times
-#     max_size=10,   # Never allow more than 10 total connections
-#     name="InsightsDSApool",
-#     kwargs={"autocommit": True} # Recommended for web apps
-# )
 load_dotenv()
 app = Flask(__name__)
 app.secret_key=os.getenv("app_secret_key")
@@ -343,7 +336,6 @@ def dashboard():
     # cur.close()
     # con.close()
     # print(f"DEBUG: Total Solved: {total_solved}, Retention: {retention_pct}%")
-            print(session.get("first_name"))
             return render_template('dashboard.html', 
                            name=session.get("user_name"),
                            retention_pct=retention_pct,
@@ -709,7 +701,8 @@ def memory():
                     elif ease >= 1.5: signal = 2
                     else: signal = 1
                     stats.append({"name": name, "solved": solved, "signal": signal})
-                    return render_template('retention.html', queue=review_queue, stats=stats)
+                    print(stats)
+                return render_template('retention.html', queue=review_queue, stats=stats)
             except Exception as e:
                 print(f"Error: {e}")
                 return "Database Error", 500
@@ -1404,4 +1397,4 @@ def get_user_journey():
         print(f"Journey API Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
