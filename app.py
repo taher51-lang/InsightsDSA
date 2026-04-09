@@ -452,6 +452,7 @@ def get_question_details(q_id):
                 """
                     cur.execute(query, (user_id, q_id))
                     data = cur.fetchone()
+                    print(data)
                     if not data:
                         return jsonify({"error": "Question not found"}), 404   
                     return jsonify(data)
