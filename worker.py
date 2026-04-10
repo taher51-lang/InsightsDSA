@@ -30,23 +30,22 @@ while True:
                     q_details = row[0]
                     analysis = analyst.get_response(q_details, transcript)
             
-            # 3. NOW update the database with the AI's findings
+                # 3. NOW update the database with the AI's findings
             
                 if analysis:
                     ai_score = analysis.mastery_score
                     clarity = analysis.clarity_score
                     print(analysis.reasoning)
-        # 3. Use UPDATE instead of INSERT
-        # con = getDBConnection()
-        # cur = con.cursor()
+                # 3. Use UPDATE instead of INSERT
+                # con = getDBConnection()
+                # cur = con.cursor()
                     cur.execute("""
                         UPDATE activity_log 
                     SET ai_bifurcated_score = %s, 
                     clarity_of_thought = %s 
                     WHERE id = %s
                 """, (ai_score, clarity, task['activity_id']))
-        
-            con.commit()
+                con.commit()
             print(f"✨ Row {task['activity_id']} enriched with AI scores!")
     except Exception as e:
         print(f"Worker Error: {e}")

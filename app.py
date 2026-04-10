@@ -1,11 +1,9 @@
 from flask import Flask, render_template, request, jsonify,session,redirect,url_for,flash
 from aiBotBackend import chatbot
 from datetime import date, timedelta 
-import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
-import psycopg2
 from psycopg.rows import dict_row
-from psycopg2 import errors
+from psycopg import errors
 from authlib.integrations.flask_client import OAuth
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
@@ -14,6 +12,8 @@ import os
 from datetime import datetime
 import traceback
 from psycopg_pool import ConnectionPool 
+import logging
+from logging.handlers import RotatingFileHandler 
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
 from analystBot import Analyst,InsightCoach
@@ -23,7 +23,7 @@ from db import pool , getDBConnection
 MASTER_KEY = os.getenv("ENCRYPTION_KEY")
 Redis = redis.Redis(
     host=os.getenv('REDIS_HOST', 'localhost'),
-    port=os.getenv('REDIS_PORT', 6379),
+    port=int(os.getenv('REDIS_PORT', 6379)),
     password=None,
     # ssl=True,             # 🔒 Add this for encrypted transit
     ssl_cert_reqs=None,   # Often required for cloud providers
@@ -33,6 +33,29 @@ cipher_suite = Fernet(MASTER_KEY)
 load_dotenv()
 app = Flask(__name__)
 app.secret_key=os.getenv("app_secret_key")
+
+# Setup Production Logging
+if not os.path.exists('logs'):
+    os.mkdir('logs')
+file_handler = RotatingFileHandler('logs/logiclens.log', maxBytes=102400, backupCount=10)
+file_handler.setFormatter(logging.Formatter(
+    '%(asctime)s %(levelname)s: %(message)s [in %(pathname)s:%(lineno)d]'
+))
+file_handler.setLevel(logging.INFO)
+app.logger.addHandler(file_handler)
+app.logger.setLevel(logging.INFO)
+app.logger.info('LogicLens startup')
+
+@app.after_request
+def add_header(response):
+    """
+    Tells the browser: 'Do not save a photo of this page. 
+    Ask the server for a fresh copy every single time.'
+    """
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 csrf = CSRFProtect(app) # This locks down all your POST routes
 app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
 def sm2_algorithm(quality, current_interval, current_ease, repetitions):
@@ -224,10 +247,6 @@ def login():
         
    
 
-@app.route("/register_page")
-def register_page():
-    return render_template("register.html")
-
 @app.route("/register", methods=["POST"])
 def register():
     data = request.get_json()
@@ -235,13 +254,13 @@ def register():
     userpass = data.get("userpass")
     useremail = data.get("email")
     name = data.get("name")
-    
+    print("Debugged")
     # 1. HASH THE PASSWORD! (This turns "password123" into "scrypt:32768:8:1$...")
     hashed_password = generate_password_hash(userpass)
-    
+    print("Heloo")
     try:
         with getDBConnection() as con:
-            with con.cursor() as cur:
+            with con.cursor(row_factory=dict_row) as cur:
         # 2. SAVE THE HASHED PASSWORD to the database, not the raw one
                 cur.execute('''
             INSERT INTO users (name, username, email, userpassword)
@@ -263,7 +282,7 @@ def register():
             return jsonify({"error": "Username or Email already exists!"}), 409 
 
     except Exception as e:
-            # print("Database Error:", e)
+            print("Database Error:", e)
             return jsonify({"error": "Server error. Please try again."}), 500
 @app.route("/dashboard")
 def dashboard():
@@ -407,6 +426,10 @@ def get_user_stats():
 
 @app.route("/questions/<int:concept_id>")
 def questions_page(concept_id):
+    user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     # This just renders the blank page with the concept_id passed to the template
     return render_template("questions.html", concept_id=concept_id)
 @app.route("/api/get_questions/<int:concept_id>")
@@ -458,7 +481,7 @@ def get_question_details(q_id):
                     return jsonify(data)
                 
                 except Exception as e:
-                        return jsonify({"error": str(e)}), 500
+                        return jsonify({"error": "Server error"}), 500
 
 # def log_to_activity(user_id, q_id, action_type, confidence, time_seconds,api_key,provider):
 #     """The Single Source of Truth for Dojo Data."""
@@ -562,7 +585,7 @@ def toggle_solve():
                     con.commit() 
                     return jsonify({"status": "success", "action": action})
                 except Exception as e:
-                    print(f"Error: {e}") # Good for debugging
+                    print(f"Error: Server error") # Good for debugging
                     return jsonify({"error": str(e)}), 500
 
 @app.route("/api/ask_ai", methods=["POST"])
@@ -578,6 +601,8 @@ def ask_AI():
             query = data.get('query')
             question_id = data.get('question_id')
             thread_id = data.get('thread_id')
+            safe_thread_id = f"user_{user_id}_{thread_id}"
+
             provider = data.get('provider')
         # user_api_key = data.get('api_key')
         # 2. Get user_id from Flask session! 
@@ -587,7 +612,7 @@ def ask_AI():
     question_description = row['description'] if row else "No description Provided"
             # Optional: If you haven't built the login system yet, uncomment the line below to test it safely:
             # user_id = 1 
-    config = {"configurable": {"thread_id": thread_id}}
+    config = {"configurable": {"thread_id": safe_thread_id}}
     if not user_id:
         return jsonify({"error": "Unauthorized. Please log in."}), 401
     try:
@@ -702,10 +727,10 @@ def memory():
                     elif ease >= 1.5: signal = 2
                     else: signal = 1
                     stats.append({"name": name, "solved": solved, "signal": signal})
-                    print(stats)
+                    # print(stats)
                 return render_template('retention.html', queue=review_queue, stats=stats)
             except Exception as e:
-                print(f"Error: {e}")
+                # print(f"Error: {e}")
                 return "Database Error", 500
 
 @app.route('/api/review', methods=['POST'])
@@ -778,8 +803,7 @@ def api_review():
 
             except Exception as e:
                 con.rollback()
-                print("Error in SRS update:", e)
-                return jsonify({"error": str(e)}), 500
+                return jsonify({"error":"Server error! check again after few time"}), 500
         
 
 @app.route('/api/roadmap-data')
@@ -808,15 +832,27 @@ def roadmap_data():
             return jsonify(concepts)
 @app.route('/roadmap')
 def roadmap():
+    user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     return render_template('roadmap.html')
 @app.route('/resource')
 def resource():
+    user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     return render_template('resource.html')
 @app.route('/profile')
 def profile():
+    user_id = session.get('user_id')
+    if 'user_id' not in session:
+        # This "asks" them to login by sending them to the login page
+        return redirect(url_for('LoginPage'))
     return render_template('profile.html')
 def getUserInfo(user_id,cur):
-    print(user_id)
+    # print(user_id)
     # 1. Execute the query safely (the trailing comma in (user_id,) is required by psycopg2!)
     cur.execute("""
         SELECT id, name, username, phone_number, email 
@@ -825,7 +861,6 @@ def getUserInfo(user_id,cur):
     """, (user_id,))
     # 2. Fetch the single row
     user_row = cur.fetchone()
-    print(user_row)
     # 3. Safety check: if the user doesn't exist, return None
     if not user_row:
         return None
@@ -1116,7 +1151,7 @@ def api_consistency():
             }), 200
 
             except Exception as e:
-                print(f"Consistency Error: {e}")
+                # print(f"Consistency Error: {e}")
                 return jsonify({"error": str(e)}), 500
 
 @app.route('/api/chat_history/<int:question_id>', methods=['GET'])
@@ -1142,7 +1177,7 @@ def get_chat_history(question_id):
                     SELECT thread_id 
                     FROM chat_messages 
                     WHERE user_id = %s AND question_id = %s 
-                    ORDER BY created_at
+                    ORDER BY created_at DESC
                     LIMIT 1
                 )
                 ORDER BY created_at ASC
@@ -1341,6 +1376,7 @@ def get_ai_summary():
         })
 @app.route('/api/set-key', methods=['POST'])
 def set_api_key():
+    
     data = request.json
     api_key = data.get('api_key')
     provider = data.get('provider')
@@ -1351,10 +1387,12 @@ def set_api_key():
     
     if api_key:
         encrypted_val = encrypt_key(api_key)
-        Redis.hset(f"user:{user_id}", mapping={
+        redis_key = f"user:{user_id}"
+        Redis.hset(redis_key, mapping={
             "api_key": encrypted_val,
             "provider": provider
         })
+        Redis.expire(redis_key, 86400) # Key expires after 24 hours
         return jsonify({"status": "success"}), 200
     
     return jsonify({"status": "error", "message": "No key provided"}), 400
@@ -1397,5 +1435,8 @@ def get_user_journey():
     except Exception as e:
         print(f"Journey API Error: {e}")
         return jsonify({"error": "Internal Server Error"}), 500
+@app.route('/about') # The URL
+def aboutus():       # The FUNCTION NAME (This is what url_for looks for)
+    return render_template('aboutus.html')
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)

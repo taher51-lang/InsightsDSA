@@ -71,7 +71,7 @@ async function saveAIToLocalStorage() {
         
         document.getElementById('ai-api-key').value = '';
         checkAIAccess(); 
-        alert("API Key secured and saved!");
+        // alert("API Key secured and saved!");
 
     } catch (error) {
         console.error(error);

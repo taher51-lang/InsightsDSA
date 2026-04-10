@@ -40,7 +40,7 @@ const handleRegistration = async () => {
     const email = document.getElementById("email").value
     console.log(user_name)
     console.log(user_pass)
-    const response = await fetch("/register", {
+    const response = await apiCall("/register", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
