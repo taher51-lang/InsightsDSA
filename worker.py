@@ -48,4 +48,4 @@ while True:
                 con.commit()
             print(f"✨ Row {task['activity_id']} enriched with AI scores!")
     except Exception as e:
-        print(f"Worker Error: {e}")
+        print(f"Worker Error:")
