@@ -25,7 +25,7 @@ Redis = redis.Redis(
     host=os.getenv('REDIS_HOST', 'localhost'),
     port=int(os.getenv('REDIS_PORT', 6379)),
     password=None,
-    # ssl=True,             # 🔒 Add this for encrypted transit
+    ssl=True,             # 🔒 Add this for encrypted transit
     ssl_cert_reqs=None,   # Often required for cloud providers
     decode_responses=True
 )
@@ -152,7 +152,6 @@ def google_callback():
     # 1. Check if user already exists (by email)
             cur.execute("SELECT id FROM users WHERE email = %s", (email,))
             user = cur.fetchone()
-
             if user:
         # 2. LINKING: Update existing user
                 cur.execute("""
@@ -172,7 +171,6 @@ def google_callback():
         # Now fetchone() actually has the new ID to grab!
                 result = cur.fetchone()
                 user_id = result[0]
-
     # 4. Commit and set session
         con.commit()
         session["user_id"] = user_id
@@ -238,7 +236,6 @@ def login():
                     return jsonify({"message": "Login successful", "name": result['name']}), 200
                 else:
                     return jsonify({"message": "Login successful"}), 200
-
 
 
     except Exception as e:
@@ -1439,4 +1436,4 @@ def get_user_journey():
 def aboutus():       # The FUNCTION NAME (This is what url_for looks for)
     return render_template('aboutus.html')
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
