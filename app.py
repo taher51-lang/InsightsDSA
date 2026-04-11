@@ -19,14 +19,16 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from analystBot import Analyst,InsightCoach
 from cryptography.fernet import Fernet
 import redis
-from db import pool , getDBConnection
+from db import  getDBConnection
 MASTER_KEY = os.getenv("ENCRYPTION_KEY")
 Redis = redis.Redis(
-    host=os.getenv('REDIS_HOST', 'localhost'),
+    # On Render, this will be your 'red-d7d58...' string
+    host=os.getenv('REDIS_HOST', 'localhost'), 
     port=int(os.getenv('REDIS_PORT', 6379)),
-    password=None,
-    ssl=True,             # 🔒 Add this for encrypted transit
-    ssl_cert_reqs=None,   # Often required for cloud providers
+    # If you didn't enable 'Internal Authentication', this stays None
+    password=os.getenv('REDIS_PASSWORD', None),
+    # ❌ CHANGE THIS: Internal Render traffic is already private
+    ssl=False,             
     decode_responses=True
 )
 cipher_suite = Fernet(MASTER_KEY)
