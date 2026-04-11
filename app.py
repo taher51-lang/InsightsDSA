@@ -19,7 +19,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from analystBot import Analyst,InsightCoach
 from cryptography.fernet import Fernet
 import redis
-from db import  getDBConnection
+from db import getDBConnection
 MASTER_KEY = os.getenv("ENCRYPTION_KEY")
 Redis = redis.Redis(
     # On Render, this will be your 'red-d7d58...' string
