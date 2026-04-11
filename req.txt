@@ -1,18 +1,19 @@
 flask
-psycopg2-binary
+gunicorn
+psycopg[binary]
+psycopg-pool
+authlib
+flask-wtf
+python-dotenv
+cryptography
 redis
-dotenv
-# Core LangChain
-langchain>=1.2.3
-langchain-core>=1.2.6
-langchain-community
-
-# Provider Integrations
-langchain-google-genai>=4.1.3
-langchain-huggingface>=1.2.0
-
-# Supporting Libraries
-python-dotenv      # For managing your API keys
-google-genai       # The new consolidated Google SDK
-anthropic          # Official Anthropic SDK
-openai             # Official OpenAI SDK
+requests
+werkzeug
+pydantic
+langchain-core
+langchain-huggingface
+langchain-google-genai
+langchain-openai
+langchain-xai
+langgraph
+langgraph-checkpoint-postgres
