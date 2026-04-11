@@ -234,6 +234,7 @@ def login():
             # 4. Set Session and Log Them In
                 session['user_id'] = result['id'] 
                 session['user_name'] = result['username']  
+                print(result["username"])
                 if result["name"]:  
                     return jsonify({"message": "Login successful", "name": result['name']}), 200
                 else:
@@ -273,7 +274,7 @@ def register():
 
                 if new_user:
                     session['user_id'] = new_user['id']
-                    session['username'] = new_user['username']
+                    session['user_name'] = new_user['username']
                     return jsonify({"message": "Registration Successful!"}), 201
 
     except errors.UniqueViolation:
