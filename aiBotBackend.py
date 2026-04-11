@@ -9,12 +9,11 @@ from langchain_xai import ChatXAI
 from typing import TypedDict,Annotated
 from langgraph.graph.message import add_messages,BaseMessage
 from pydantic import Field
-from db import pool # Import the actual pool object
+from db import get_pool # Import the actual pool object
 from langgraph.checkpoint.postgres import PostgresSaver
-
+pool = get_pool()
 # Give LangGraph the whole valet service
 checkpointer = PostgresSaver(pool)
-
 # This sets up the 'checkpoints' tables automatically
 with pool.connection() as conn:
     checkpointer.setup()
