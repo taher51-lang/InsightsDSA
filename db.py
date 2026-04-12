@@ -16,8 +16,8 @@ def get_pool():
         _pool = ConnectionPool(
             conninfo=DB_URI,
             min_size=1,        # Keep this low on the free tier
-            max_size=10,
-            kwargs={"autocommit": False}
+            max_size=4,
+            kwargs={"autocommit": False,"connect_timeout": 10}
         )
     return _pool
 
