@@ -138,6 +138,55 @@
             opacity: 1;
             transform: translateY(0);
         }
+        /* =========================================
+           📱 MOBILE RESPONSIVE FIXES (ABOUT US)
+           ========================================= */
+        @media (max-width: 991px) {
+            /* 1. Shrink the massive 72px padding */
+            .content-padding {
+                padding: 2rem !important;
+            }
+
+            /* 2. Scale down the Hero Text */
+            .display-4 {
+                font-size: 2.5rem;
+                line-height: 1.2;
+            }
+
+            /* 3. Adjust the Black Profile Card */
+            .col-lg-5.p-4.p-md-5 {
+                padding: 1rem !important; /* Removes outer gap on mobile */
+            }
+            .profile-card {
+                padding: 2rem;
+                border-radius: 24px;
+            }
+
+            /* 4. Align the Metric Pills Horizontally on Mobile */
+            /* Prevents the 3 pills from stacking vertically and taking up the whole screen */
+            .row.g-3.mb-5 {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .col-sm-4 {
+                flex: 1 1 30%; /* Makes them sit side-by-side */
+                min-width: 100px;
+            }
+            .metric-pill {
+                padding: 15px 10px;
+            }
+            .metric-pill h4 {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Tweak for extremely small screens */
+        @media (max-width: 400px) {
+            .display-4 { font-size: 2rem; }
+            .content-padding { padding: 1.5rem !important; }
+        }
     </style>
 </head>
 <body>

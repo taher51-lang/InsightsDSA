@@ -8,6 +8,63 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     
     <style>
+        /* =========================================
+           📱 MOBILE RESPONSIVE FIXES
+           ========================================= */
+        @media (max-width: 768px) {
+            /* Reduce overall body padding for small screens */
+            body {
+                padding: 20px 15px;
+            }
+
+            /* Stack the Header & Button */
+            .hub-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 20px;
+                padding-bottom: 15px;
+                margin-bottom: 25px;
+            }
+
+            .header-text h1 {
+                font-size: 1.5rem; /* Slightly smaller for mobile */
+            }
+
+            /* Make the back button full-width and center the icon */
+            .btn-back {
+                width: 100%;
+                justify-content: center;
+                padding: 12px;
+            }
+
+            /* Stack the Search Bar and Filter Chips */
+            .controls {
+                flex-direction: column;
+                align-items: stretch; /* Stretches search input to full width */
+                gap: 15px;
+            }
+
+            /* Allow chips to wrap to the next line if they don't fit */
+            .type-chips {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+
+            .chip {
+                flex-grow: 1; /* Makes chips evenly fill the available space */
+                text-align: center;
+                padding: 10px 12px;
+            }
+        }
+
+        /* For very small phones (like iPhone SE) */
+        @media (max-width: 480px) {
+            .resource-grid {
+                /* Overrides the 300px minimum so it doesn't cause horizontal scroll */
+                grid-template-columns: 1fr; 
+                gap: 16px;
+            }
+        }
         :root {
             --bg-white: #ffffff;
             --pure-black: #000000; 

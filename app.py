@@ -26,7 +26,7 @@ Redis = redis.Redis(
     host=os.getenv('REDIS_HOST', 'localhost'), 
     port=int(os.getenv('REDIS_PORT', 6379)),
     # If you didn't enable 'Internal Authentication', this stays None
-    password=os.getenv('REDIS_PASSWORD', None),
+    password=None,
     # ❌ CHANGE THIS: Internal Render traffic is already private
     ssl=False,             
     decode_responses=True
@@ -763,6 +763,7 @@ def api_review():
                 curr_reps = record[2] if record and record[2] else 0
             # 4. Run the Algorithm
                 new_ivl, new_ease, new_reps, new_date = sm2_algorithm(quality, curr_ivl, curr_ease, curr_reps)
+                print("")
             # 5. Update Database
                 cur.execute("""
                 UPDATE user_progress 
@@ -803,6 +804,7 @@ def api_review():
 
             except Exception as e:
                 con.rollback()
+                print(str(e))
                 return jsonify({"error":"Server error! check again after few time"}), 500
         
 
@@ -1439,4 +1441,4 @@ def get_user_journey():
 def aboutus():       # The FUNCTION NAME (This is what url_for looks for)
     return render_template('aboutus.html')
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
