@@ -368,7 +368,7 @@
                     </div>
 
                     <p class="text-muted mt-4 mb-0" style="font-size: 0.7rem;">
-                        Time input is required to update your Dojo insights.
+                        Time input is required to update your insights.
                     </p>
                 </div>
 
@@ -461,11 +461,15 @@
                 .then(res => res.json())
                 .then(data => {
                     list.innerHTML = data.map(item => `
-                <a href="{{ url_for('question_page', q_id=0) }}".replace('0', item.id) class="list-group-item list-group-item-action bg-transparent text-dark fw-bold border-secondary d-flex justify-content-between align-items-center py-3">
+                <a href="/question/${item.id}" class="list-group-item list-group-item-action bg-transparent text-dark fw-bold border-secondary d-flex justify-content-between align-items-center py-3">
                     <span>${item.title}</span>
                     <span class="btn btn-sm btn-primary rounded-pill">Solve</span>
                 </a>
             `).join('') || '<div class="text-center p-3 text-muted">No similar unsolved problems found!</div>';
+                })
+                .catch(err => {
+                    console.error("Error fetching similar questions:", err);
+                    list.innerHTML = '<div class="text-center p-3 text-danger">Failed to load recommendations.</div>';
                 });
         }
     </script>

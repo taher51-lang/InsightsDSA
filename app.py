@@ -21,16 +21,15 @@ from cryptography.fernet import Fernet
 import redis
 from db import getDBConnection
 MASTER_KEY = os.getenv("ENCRYPTION_KEY")
-Redis = redis.Redis(
-    # On Render, this will be your 'red-d7d58...' string
-    host=os.getenv('REDIS_HOST', 'localhost'), 
-    port=int(os.getenv('REDIS_PORT', 6379)),
-    # If you didn't enable 'Internal Authentication', this stays None
-    password=None,
-    # ❌ CHANGE THIS: Internal Render traffic is already private
-    ssl=False,             
-    decode_responses=True
-)
+redis_url = os.getenv('REDIS_URL')
+
+if redis_url:
+    # This automatically parses host, port, AND password from the URL
+    Redis = redis.from_url(redis_url, decode_responses=True)
+else:
+    # Fallback for your local machine
+    print("Unsuccessful")
+    Redis = redis.Redis(host='localhost', port=6379, decode_responses=True)
 cipher_suite = Fernet(MASTER_KEY)
 load_dotenv()
 app = Flask(__name__)
@@ -786,9 +785,7 @@ def api_review():
                 VALUES (%s, %s, %s, %s, %s)
                 RETURNING id
                 """, (user_id, question_id, action, quality, time_seconds))
-        
                 activity_id = cur.fetchone()[0] # This is the unique ID for this specific solve
-
         # 2. Tell the worker: "Hey, go find row ID X and add the AI scores to it"
                 task_payload = {
                 "activity_id": activity_id, # The key to the update
@@ -804,7 +801,6 @@ def api_review():
 
             except Exception as e:
                 con.rollback()
-                print(str(e))
                 return jsonify({"error":"Server error! check again after few time"}), 500
         
 
@@ -1441,4 +1437,4 @@ def get_user_journey():
 def aboutus():       # The FUNCTION NAME (This is what url_for looks for)
     return render_template('aboutus.html')
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
