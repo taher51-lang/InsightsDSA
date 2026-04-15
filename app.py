@@ -11,7 +11,6 @@ from langchain_core.messages import AIMessage,HumanMessage
 import os
 from datetime import datetime
 import traceback
-from psycopg_pool import ConnectionPool 
 import logging
 from logging.handlers import RotatingFileHandler 
 import json
