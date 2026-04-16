@@ -15,7 +15,7 @@ import logging
 from logging.handlers import RotatingFileHandler 
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
-from analystBot import Analyst,InsightCoach
+from analystBot import InsightCoach
 from cryptography.fernet import Fernet
 import redis
 from db import getDBConnection
@@ -628,10 +628,8 @@ def ask_AI():
             'user_api_key': decrypt_key(encrypted_key), 
             'provider': provider          
         }, config=config)
-        
         # 4. Extract the clean text response
         ai_response = response['messages'][-1].content
-
         # 5. Database Logging (Nested Try/Except)
         with getDBConnection() as con:
             with con.cursor(row_factory=dict_row) as cur:
