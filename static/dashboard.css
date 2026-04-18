@@ -45,12 +45,12 @@ main {
 }
 
 /* DESKTOP CONCEPT BOX */
+/* DESKTOP CONCEPT BOX */
 .concept-scroll-box {
-    /* Adjust '450px' based on how much space your 'Hello Josh' banner takes */
     height: calc(100vh - 358px); 
     overflow-y: auto;
     overflow-x: hidden;
-    padding-right: 8px; /* Prevents scrollbar from touching the cards */
+    padding-right: 8px;
 }
 
 /* Professional thin scrollbar for a native macOS feel */
@@ -193,5 +193,31 @@ main {
 @media (max-width: 991px) {
     .col-lg-7 {
         margin-bottom: 1.5rem !important;
+    }
+}
+/* Target the chart card specifically */
+.col-lg-5 .card:nth-child(2) {
+    flex: 1 1 auto;
+}
+
+/* Also ensure the flex column fills full height */
+.col-lg-5 .d-flex.flex-column {
+    min-height: calc(100vh - 2rem);
+}
+@media (max-width: 991px) {
+    .sidebar .container-fluid > div:first-child {
+        margin-top: 0 !important;
+    }
+}
+@media (min-width: 992px) {
+    .col-lg-7, .col-lg-5 {
+        height: calc(100vh - 2rem);
+        overflow: hidden;
+    }
+    .col-lg-5 .d-flex.flex-column {
+        height: 100%;
+    }
+    .col-lg-5 .card:nth-child(2) {  /* Retention chart */
+        flex-grow: 1;
     }
 }

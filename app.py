@@ -999,57 +999,7 @@ def journey():
     if 'user_id' not in session:
         return redirect('/login')
     return render_template('journey.html')
-# @app.route('/api/journey')
-# def api_journey():
-#     user_id = session.get('user_id')
-#     if not user_id:
-#         return jsonify({"error": "Unauthorized"}), 401
 
-#     con = None
-#     cur = None
-#     try:
-#         con = getDBConnection()
-#         cur = con.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-#         # The Ultimate SQL Query:
-#         # Grabs all concepts, counts total available questions, 
-#         # counts how many THIS user solved, and creates a comma-separated list of their solved question titles!
-#         cur.execute("""
-#     SELECT 
-#         c.title AS concept_title,
-#         COUNT(DISTINCT q.id) AS total_questions,
-#         COUNT(DISTINCT CASE WHEN up.is_solved = TRUE THEN up.question_id ELSE NULL END) AS solved_questions,
-#         STRING_AGG(DISTINCT CASE WHEN up.is_solved = TRUE THEN q.title ELSE NULL END, ', ') AS solved_list
-#     FROM concepts c
-#     LEFT JOIN questions q ON c.id = q.concept_id
-#     LEFT JOIN user_progress up ON q.id = up.question_id AND up.user_id = %s
-#     GROUP BY c.id, c.title
-# """, (user_id,))
-#         db_results = cur.fetchall()
-#         # print(db_results)
-#         journey_data = {}
-#         for row in db_results:
-#             title = row['concept_title']
-#             # Format the text for the hover tooltip
-#             details = "Locked. Solve previous concepts first."
-#             if row['solved_questions'] > 0:
-#                 details = f"Solved: {row['solved_list']}"
-#             elif row['total_questions'] == 0:
-#                 details = "Questions coming soon."
-#             # Use the EXACT concept title from your database as the dictionary key
-#             journey_data[title] = {
-#                 "solved": row['solved_questions'],
-#                 "total": row['total_questions'],
-#                 "details": details
-#             }
-
-#         return jsonify(journey_data), 200
-
-    # except Exception as e:
-    #     print("Error fetching journey data:", e)
-    #     return jsonify({"error": "Failed to load journey"}), 500
-    # finally:
-    #     if cur: cur.close()
-    #     if con: con.close()
 @app.route("/question/<int:q_id>")
 def question_page(q_id):
     user_id = session.get("user_id")
