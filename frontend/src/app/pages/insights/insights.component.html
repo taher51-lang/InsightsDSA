@@ -1,0 +1,102 @@
+<div class="container py-4 py-lg-5">
+  <h1 class="h3 fw-bold mb-2">Insights</h1>
+  <p class="text-muted mb-4">Skill mix from your activity logs and optional AI commentary.</p>
+
+  @if (loadError) {
+    <div class="alert alert-danger">{{ loadError }}</div>
+  }
+
+  @if (consistency) {
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4">
+          <div class="card-body">
+            <p class="small text-muted text-uppercase mb-1">Consistency (30d)</p>
+            <p class="display-6 fw-bold mb-0">{{ consistency.score }}</p>
+            <p class="small text-muted mb-0 mt-2">
+              {{ consistency.active_days }} active days · {{ consistency.solves }} solves ·
+              {{ consistency.reviews }} reviews
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  @if (matrix) {
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+      <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted mb-3">Concept mastery (from logs)</h2>
+        <div class="table-responsive">
+          <table class="table table-sm align-middle mb-0">
+            <thead>
+              <tr>
+                <th>Concept</th>
+                <th class="text-end">Solves</th>
+                <th class="text-end">Mastery %</th>
+                <th class="text-end">Clarity %</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of matrix.matrix_stats; track row.label) {
+                <tr>
+                  <td class="fw-semibold">{{ row.label }}</td>
+                  <td class="text-end">{{ row.count }}</td>
+                  <td class="text-end">{{ row.mastery }}</td>
+                  <td class="text-end">{{ row.clarity }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <h2 class="h6 text-uppercase text-muted mb-3">Session history by concept</h2>
+    @for (kv of matrix.concept_history | keyvalue; track kv.key) {
+      <div class="card border-0 shadow-sm rounded-3 mb-3">
+        <div class="card-header bg-white fw-semibold py-2">{{ kv.key }}</div>
+        <div class="card-body py-2">
+          <ul class="list-unstyled mb-0 small">
+            @for (item of kv.value; track item.title + item.time) {
+              <li class="mb-2 d-flex flex-wrap justify-content-between gap-2">
+                <span>{{ item.title }}</span>
+                <span class="text-muted">{{ item.time }} · autonomy {{ item.autonomy }}</span>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+
+    <div class="card shadow-sm border-0 rounded-4 mb-3">
+      <div class="card-body">
+        <h2 class="h6 text-uppercase text-muted mb-3">AI diagnostic</h2>
+        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+          <select class="form-select form-select-sm w-auto" [(ngModel)]="aiProvider">
+            <option value="gemini">Gemini</option>
+            <option value="openai">OpenAI</option>
+          </select>
+          <button type="button" class="btn btn-dark btn-sm" [disabled]="aiBusy" (click)="loadAiSummary()">
+            @if (aiBusy) {
+              <span>Working…</span>
+            } @else {
+              <span>Generate summary</span>
+            }
+          </button>
+        </div>
+        @if (aiErr) {
+          <p class="text-danger small">{{ aiErr }}</p>
+        }
+        @if (diagnostic) {
+          <p class="small fw-semibold mb-1">Diagnostic</p>
+          <p class="small text-muted mb-3" style="white-space: pre-wrap">{{ diagnostic }}</p>
+        }
+        @if (predictor) {
+          <p class="small fw-semibold mb-1">Interview readiness</p>
+          <p class="small text-muted mb-0" style="white-space: pre-wrap">{{ predictor }}</p>
+        }
+      </div>
+    </div>
+  }
+</div>

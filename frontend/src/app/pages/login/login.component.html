@@ -1,0 +1,51 @@
+<nav class="top-nav">
+  <div class="container py-3 d-flex align-items-center justify-content-between">
+    <a routerLink="/" class="brand">
+      <i class="fa-solid fa-terminal me-2"></i>InsightsDSA
+    </a>
+    <a routerLink="/" class="link-back small">About the product</a>
+  </div>
+</nav>
+
+<div class="login-shell">
+  <div class="card shadow-sm login-card">
+    <h1 class="h4 fw-bold mb-1">Sign in</h1>
+    <p class="text-muted small mb-4">Internal workspace — use your org credentials.</p>
+
+    <a class="btn btn-outline-secondary w-100 google-row mb-4" href="/login/google">
+      <i class="fa-brands fa-google me-2"></i>Continue with Google
+    </a>
+
+    <div class="divider"><span>or username</span></div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()">
+      <div class="mb-3">
+        <label class="form-label small fw-semibold" for="login-user">Username</label>
+        <input
+          id="login-user"
+          class="form-control"
+          type="text"
+          formControlName="username"
+          autocomplete="username"
+        />
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold" for="login-pass">Password</label>
+        <input
+          id="login-pass"
+          class="form-control"
+          type="password"
+          formControlName="userpass"
+          autocomplete="current-password"
+        />
+      </div>
+      <button id="loginbtn" class="btn btn-dark w-100 py-2" type="submit" [disabled]="form.invalid">
+        Sign in
+      </button>
+    </form>
+
+    @if (errorMsg) {
+      <p class="err mt-3 mb-0 small">{{ errorMsg }}</p>
+    }
+  </div>
+</div>

@@ -1,0 +1,103 @@
+<div class="container py-4 py-lg-5">
+  <h1 class="h3 fw-bold mb-4">Profile</h1>
+
+  @if (loadError) {
+    <div class="alert alert-danger">{{ loadError }}</div>
+  }
+
+  @if (data) {
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="card shadow-sm border-0 rounded-4">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">Account</h2>
+            <p class="mb-1"><strong>{{ data.user.name }}</strong></p>
+            <p class="text-muted small mb-1">&#64;{{ data.user.username }}</p>
+            <p class="text-muted small mb-3">{{ data.user.email }}</p>
+            <p class="mb-0">
+              <span class="badge bg-dark">Streak {{ data.user.streak }} days</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4 mt-4">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">Change password</h2>
+            <form [formGroup]="pwdForm" (ngSubmit)="submitPassword()">
+              <div class="mb-2">
+                <label class="form-label small" for="cp">Current</label>
+                <input id="cp" class="form-control form-control-sm" type="password" formControlName="current_password" />
+              </div>
+              <div class="mb-2">
+                <label class="form-label small" for="np">New (min 8)</label>
+                <input id="np" class="form-control form-control-sm" type="password" formControlName="new_password" />
+              </div>
+              <button class="btn btn-dark btn-sm" type="submit" [disabled]="pwdForm.invalid">Update</button>
+            </form>
+            @if (pwdMsg) {
+              <p class="text-success small mt-2 mb-0">{{ pwdMsg }}</p>
+            }
+            @if (pwdErr) {
+              <p class="text-danger small mt-2 mb-0">{{ pwdErr }}</p>
+            }
+          </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4 mt-4">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">AI provider key</h2>
+            <p class="small text-muted">
+              Stored encrypted server-side for tutor + insights (same as legacy profile).
+            </p>
+            <form [formGroup]="keyForm" (ngSubmit)="submitKey()">
+              <div class="mb-2">
+                <label class="form-label small">Provider</label>
+                <select class="form-select form-select-sm" formControlName="provider">
+                  <option value="gemini">Gemini</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small">API key</label>
+                <input class="form-control form-control-sm" type="password" formControlName="api_key" autocomplete="off" />
+              </div>
+              <button class="btn btn-outline-dark btn-sm" type="submit" [disabled]="keyForm.invalid">Save key</button>
+            </form>
+            @if (keyMsg) {
+              <p class="text-success small mt-2 mb-0">{{ keyMsg }}</p>
+            }
+            @if (keyErr) {
+              <p class="text-danger small mt-2 mb-0">{{ keyErr }}</p>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="card shadow-sm border-0 rounded-4">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">Recent activity</h2>
+            @if (data.logs.length === 0) {
+              <p class="text-muted small mb-0">No solves logged yet.</p>
+            } @else {
+              <ul class="list-group list-group-flush">
+                @for (log of data.logs; track log.problem + log.date) {
+                  <li class="list-group-item d-flex justify-content-between align-items-start gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ log.problem }}</div>
+                      <div class="small text-muted">{{ log.concept }}</div>
+                    </div>
+                    <div class="text-end">
+                      <span class="badge rounded-pill" [class]="badgeClass(log.color)">{{ log.difficulty }}</span>
+                      <div class="small text-muted mt-1">{{ log.date }}</div>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

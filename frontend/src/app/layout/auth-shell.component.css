@@ -1,0 +1,50 @@
+.app-shell-nav {
+  background: var(--brand-black, #1a1b1e);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.brand {
+  color: #fff !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  font-size: 1.05rem;
+}
+
+.nav-links a {
+  color: rgba(255, 255, 255, 0.72);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 500;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+}
+
+.nav-links a:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.nav-links a.active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.nav-links a.logout {
+  color: #f8b4b4;
+}
+
+.nav-links a.logout:hover {
+  color: #fff;
+  background: rgba(220, 53, 69, 0.25);
+}
+
+.app-shell-main {
+  min-height: calc(100vh - 52px);
+}
+
+.text-white-50 {
+  color: rgba(255, 255, 255, 0.35) !important;
+}

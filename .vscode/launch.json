@@ -1,0 +1,128 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flask: InsightsDSA",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "flask",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "jinja": true,
+      "env": {
+        "FLASK_APP": "insightsdsa.app:app",
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "args": [
+        "run",
+        "--no-debugger",
+        "--no-reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5000"
+      ]
+    },
+    {
+      "name": "Flask: InsightsDSA (build Angular SPA first)",
+      "type": "debugpy",
+      "request": "launch",
+      "preLaunchTask": "frontend: npm run build (Angular SPA)",
+      "module": "flask",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "jinja": true,
+      "env": {
+        "FLASK_APP": "insightsdsa.app:app",
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "args": [
+        "run",
+        "--no-debugger",
+        "--no-reload",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5000"
+      ]
+    },
+    {
+      "name": "Python: Appinit (bootstrap data)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "insightsdsa.appinit",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Python: Pytest (all tests)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "args": ["tests", "-v", "--tb=short"]
+    },
+    {
+      "name": "Python: Pytest (current file)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "args": ["${file}", "-v", "--tb=short"]
+    },
+    {
+      "name": "Python: Seed E2E user (DB)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "insightsdsa.seed_e2e_user",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      }
+    },
+    {
+      "name": "Playwright: Run E2E UI tests (e2e/)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "args": ["e2e", "-v", "--tb=short"]
+    },
+    {
+      "name": "Playwright: Run current E2E file",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}/src"
+      },
+      "args": ["${file}", "-v", "--tb=short"]
+    }
+  ]
+}

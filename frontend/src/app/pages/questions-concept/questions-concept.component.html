@@ -1,0 +1,65 @@
+<div class="page-bg min-vh-100">
+  <div class="container py-4 py-lg-5">
+    <a routerLink="/dashboard" class="back-link text-decoration-none text-muted small d-inline-flex align-items-center gap-1 mb-3">
+      <i class="fa-solid fa-arrow-left"></i> Back to dashboard
+    </a>
+
+    @if (loadError) {
+      <div class="alert alert-danger">{{ loadError }}</div>
+    }
+
+    @if (data) {
+      <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+          <p class="text-muted small mb-1">Concept {{ data.concept.id }}</p>
+          <h1 class="h2 fw-bold mb-0 d-flex align-items-center gap-2">
+            <span class="concept-emoji" aria-hidden="true">{{ data.concept.icon }}</span>
+            {{ data.concept.title }}
+          </h1>
+        </div>
+        <div class="badge bg-white text-dark shadow-sm px-3 py-2 rounded-pill border">
+          <span class="fw-bold text-primary">{{ solvedCount() }}</span>
+          <span class="text-muted"> / {{ data.questions.length }} solved</span>
+        </div>
+      </div>
+
+      <div class="table-responsive bg-white rounded-4 shadow-sm border border-light">
+        <table class="table align-middle table-hover mb-0">
+          <tbody>
+            @for (q of data.questions; track trackById($index, q)) {
+              <tr>
+                <td class="ps-4" style="width: 56px">
+                  @if (q.is_solved) {
+                    <div class="status-dot bg-success-subtle text-success">
+                      <i class="fa-solid fa-check"></i>
+                    </div>
+                  } @else {
+                    <div class="status-dot bg-light text-secondary">
+                      <i class="fa-regular fa-circle"></i>
+                    </div>
+                  }
+                </td>
+                <td>
+                  <div class="fw-semibold text-dark">{{ q.title }}</div>
+                  <a [href]="q.link" target="_blank" rel="noopener noreferrer" class="small text-primary text-decoration-none">
+                    View on LeetCode <i class="fa-solid fa-arrow-up-right-from-square ms-1" style="font-size: 0.7rem"></i>
+                  </a>
+                </td>
+                <td>
+                  <span class="badge rounded-pill px-3 py-2" [ngClass]="badgeClass(q.difficulty)">
+                    {{ q.difficulty }}
+                  </span>
+                </td>
+                <td class="text-end pe-4">
+                  <a [routerLink]="['/question', q.id]" class="btn btn-sm btn-dark rounded-pill px-3 fw-medium">
+                    Solve problem <i class="fa-solid fa-arrow-right ms-1"></i>
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  </div>
+</div>

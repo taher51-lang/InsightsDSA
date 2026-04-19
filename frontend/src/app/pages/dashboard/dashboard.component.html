@@ -1,0 +1,65 @@
+@if (loadError) {
+  <div class="container py-5">
+    <div class="alert alert-danger">{{ loadError }}</div>
+  </div>
+}
+
+@if (data) {
+  <div class="dash-main">
+    <div class="container py-4 py-lg-5">
+      <p class="text-muted small mb-3">
+        Signed in as <strong>{{ data.user_name || 'there' }}</strong>
+      </p>
+      <div class="row g-4 mb-4">
+        <div class="col-md-4">
+          <div class="stat-card h-100">
+            <p class="label text-uppercase small mb-1">Retention</p>
+            <p class="display-6 fw-bold mb-0">{{ data.retention_pct }}%</p>
+            <p class="text-muted small mb-0 mt-2">{{ data.days_label }}</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-card h-100">
+            <p class="label text-uppercase small mb-1">Problems solved</p>
+            <p class="display-6 fw-bold mb-0">{{ data.total_solved }}</p>
+            <p class="text-muted small mb-0 mt-2">Across all concepts</p>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="stat-card h-100">
+            <p class="label text-uppercase small mb-1">Next step</p>
+            <p class="fw-semibold mb-2">Memory &amp; reviews</p>
+            <a class="btn btn-dark btn-sm" routerLink="/memory">Open memory</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
+        <h2 class="h4 fw-bold mb-0">Concepts</h2>
+        <p class="text-muted small mb-0">Pick a track and start solving.</p>
+      </div>
+
+      <div class="row g-3">
+        @for (c of data.concepts; track c.id) {
+          <div class="col-md-6 col-xl-4">
+            <div class="concept-card h-100 d-flex flex-column">
+              <div class="d-flex align-items-start gap-3">
+                <span class="concept-emoji" aria-hidden="true">{{ c.icon }}</span>
+                <div class="flex-grow-1 min-w-0">
+                  <h3 class="h6 fw-bold mb-1 text-truncate" [title]="c.title">{{ c.title }}</h3>
+                  <p class="text-muted small mb-0">Concept #{{ c.id }}</p>
+                </div>
+              </div>
+              <div class="mt-auto pt-3">
+                <a
+                  class="btn btn-outline-dark w-100 stretched-link"
+                  [routerLink]="['/questions', c.id]"
+                  >Solve problems</a>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+}

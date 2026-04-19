@@ -1,0 +1,82 @@
+.top-nav {
+  background: var(--brand-black, #1a1b1e);
+  color: #fff;
+}
+
+.brand {
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+}
+
+.link-back {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+}
+
+.link-back:hover {
+  color: #fff;
+}
+
+.login-shell {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem 3rem;
+  background: linear-gradient(180deg, #eef0f3 0%, #f4f5f7 40%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  border: 1px solid #e9ecef;
+  border-radius: 14px;
+  padding: 2rem 2rem 1.75rem;
+  background: #fff;
+}
+
+.google-row {
+  font-weight: 500;
+  border-radius: 8px;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  color: #6c757d;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.divider span {
+  padding: 0 0.75rem;
+}
+
+.err {
+  color: #b00020;
+}
+
+.btn-dark {
+  background-color: var(--brand-black, #1a1b1e);
+  border-color: var(--brand-black, #1a1b1e);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-dark:hover:not(:disabled) {
+  background: #000;
+  border-color: #000;
+}

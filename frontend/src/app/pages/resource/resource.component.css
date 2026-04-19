@@ -1,0 +1,11 @@
+.tag {
+  border: 1px solid #000;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+}
+
+.btn-group .btn.active {
+  background: #1a1b1e;
+  color: #fff;
+}

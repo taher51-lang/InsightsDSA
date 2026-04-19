@@ -1,0 +1,31 @@
+<div class="container py-4 py-lg-5">
+  <h1 class="h3 fw-bold mb-2">Mastery timeline</h1>
+  <p class="text-muted mb-4">Concepts ordered by when you first cleared problems in each track.</p>
+
+  @if (loadError) {
+    <div class="alert alert-danger">{{ loadError }}</div>
+  }
+
+  @if (!loadError && rows.length === 0) {
+    <p class="text-muted">Solve a few problems to populate your journey.</p>
+  }
+
+  <ol class="timeline list-unstyled mb-0">
+    @for (r of rows; track r.title + (r.achieved_at ?? '')) {
+      <li class="timeline-item mb-4 pb-4 border-bottom">
+        <div class="d-flex align-items-start gap-3">
+          <span class="display-6" aria-hidden="true">{{ r.icon }}</span>
+          <div>
+            <h2 class="h5 fw-bold mb-1">{{ r.title }}</h2>
+            <p class="text-muted small mb-1">{{ r.count }} problems mastered</p>
+            @if (r.achieved_at) {
+              <p class="small mb-0 text-secondary">
+                First cleared: {{ r.achieved_at | date : 'mediumDate' }}
+              </p>
+            }
+          </div>
+        </div>
+      </li>
+    }
+  </ol>
+</div>

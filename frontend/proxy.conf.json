@@ -1,0 +1,8 @@
+{
+  "/api": { "target": "http://127.0.0.1:5000", "secure": false, "changeOrigin": true },
+  "/login": { "target": "http://127.0.0.1:5000", "secure": false, "changeOrigin": true },
+  "/register": { "target": "http://127.0.0.1:5000", "secure": false, "changeOrigin": true },
+  "/logout": { "target": "http://127.0.0.1:5000", "secure": false, "changeOrigin": true },
+  "/login/google": { "target": "http://127.0.0.1:5000", "secure": false, "changeOrigin": true },
+  "/login/callback": { "target": "http://127.0.0.1:5000", "secure": false, "changeOrigin": true }
+}

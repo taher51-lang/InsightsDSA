@@ -1,0 +1,69 @@
+.dash-main {
+  background: #f4f5f7;
+  min-height: calc(100vh - 52px);
+}
+
+.stat-card {
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  transition:
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.stat-card:hover {
+  border-color: #ced4da;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.stat-card .label {
+  letter-spacing: 0.08em;
+  color: #6c757d;
+  font-size: 0.7rem;
+}
+
+.concept-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.25rem 1.25rem 1rem;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.concept-card:hover {
+  border-color: var(--brand-black, #1a1b1e);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
+  transform: translateY(-2px);
+}
+
+.concept-emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.btn-dark {
+  background-color: var(--brand-black, #1a1b1e);
+  border-color: var(--brand-black, #1a1b1e);
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.btn-dark:hover {
+  background: #000;
+  border-color: #000;
+}
+
+.err {
+  color: #b00020;
+}
+
+/* Avoid stretched-link covering sibling cards incorrectly */
+.concept-card .stretched-link::after {
+  border-radius: 12px;
+}

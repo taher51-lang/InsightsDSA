@@ -1,0 +1,138 @@
+<nav class="navbar navbar-expand-lg fixed-top animate-on-load">
+  <div class="container">
+    <a class="navbar-brand" routerLink="/">
+      <i class="fa-solid fa-terminal me-2"></i>InsightsDSA
+    </a>
+    <button
+      class="navbar-toggler navbar-dark"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#navbarNav"
+      aria-controls="navbarNav"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
+        <li class="nav-item">
+          <a class="nav-link me-lg-3" href="#features">Features</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link me-lg-3" routerLink="/about">About</a>
+        </li>
+        <li class="nav-item">
+          @if (authenticated) {
+            <a routerLink="/dashboard" class="btn btn-nav-login">Dashboard</a>
+          } @else {
+            <a routerLink="/login" class="btn btn-nav-login">Login</a>
+          }
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<div class="bg-extra" aria-hidden="true">
+  <i class="fa-solid fa-diagram-project"></i>
+</div>
+<div class="bg-extra-2" aria-hidden="true">
+  <i class="fa-solid fa-code-branch"></i>
+</div>
+
+<section class="hero-section animate-on-load delay-1">
+  <div class="hero-content container text-center">
+    <div class="row justify-content-center">
+      <div class="col-lg-9 col-xl-8">
+        <h1 class="display-2 fw-bold mb-4 hero-title">
+          Identify Patterns.<br />
+          <span class="text-decoration-underline">Master Logic.</span>
+        </h1>
+        <p class="lead text-muted mb-4 px-lg-4">
+          InsightsDSA is an internal learning workspace that pairs
+          <strong>spaced repetition</strong> with an <strong>insights engine</strong>
+          so you diagnose logic gaps, keep what you have learned, and revise on a
+          schedule that matches your mastery—not a generic checklist.
+        </p>
+        <p class="text-muted mb-5 px-lg-4 purpose-sub">
+          Use it to work through curated DSA-style problems, track retention across
+          short and long intervals, and (when you bring your own API keys) get
+          structured feedback on approach and clarity—without giving up ownership
+          of your data.
+        </p>
+        @if (authenticated) {
+          <a routerLink="/dashboard" class="btn btn-black btn-lg">Continue to dashboard</a>
+        } @else {
+          <a routerLink="/login" class="btn btn-black btn-lg">Start solving now</a>
+        }
+      </div>
+    </div>
+  </div>
+  <div class="scroll-indicator">
+    <small>Scroll to explore</small><br />
+    <i class="fa-solid fa-chevron-down"></i>
+  </div>
+</section>
+
+<section id="features" class="py-5 features-section animate-on-load delay-2">
+  <div class="container py-5">
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card h-100">
+          <i class="fa-solid fa-microchip feature-icon"></i>
+          <h4 class="fw-bold mb-3 small text-uppercase">Insights engine</h4>
+          <p class="text-muted small mb-0">
+            Move beyond test cases. The engine audits your reasoning and surfaces
+            diagnostic signals on clarity and efficiency—so you know what to fix
+            next, not just whether the answer passed.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card h-100">
+          <i class="fa-solid fa-key feature-icon"></i>
+          <h4 class="fw-bold mb-3 small text-uppercase">BYOK model</h4>
+          <p class="text-muted small">
+            Connect your own model API keys when you want AI-assisted depth. Keys
+            stay under your control and are handled with encryption in line with
+            your org’s policy.
+          </p>
+          <div class="security-note">
+            <i class="fa-solid fa-shield-halved"></i>
+            <strong>Security:</strong> keys are encrypted at rest; access is session-scoped.
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card h-100">
+          <i class="fa-solid fa-arrows-rotate feature-icon"></i>
+          <h4 class="fw-bold mb-3 small text-uppercase">Revision rhythm</h4>
+          <p class="text-muted small mb-0">
+            Scheduling follows your progress and intervals so reviews land when
+            memory is about to fade—not when a calendar says so.
+          </p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card h-100">
+          <i class="fa-solid fa-chart-gantt feature-icon"></i>
+          <h4 class="fw-bold mb-3 small text-uppercase">Mastery timeline</h4>
+          <p class="text-muted small mb-0">
+            Visualize how short-term wins consolidate into durable patterns over
+            time, so momentum is visible—not guessed.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container text-center">
+    <h5 class="fw-bold">InsightsDSA</h5>
+    <p class="mb-2">Built by <strong>Taher</strong> for high-achieving engineers.</p>
+    <p class="mb-4 small text-white-50">Internal workspace. Engineering is about intent.</p>
+    <div class="mb-0 small text-white-50">&copy; 2026 InsightsDSA</div>
+  </div>
+</footer>
