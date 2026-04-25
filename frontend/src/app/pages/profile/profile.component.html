@@ -1,0 +1,116 @@
+<div class="container-fluid p-0">
+  <div class="d-flex flex-column flex-lg-row min-vh-100">
+    <aside class="px-2 px-lg-4 pb-2 pb-lg-4 pt-3 custom-sidebar-width">
+      <nav class="sidebar navbar navbar-expand-lg navbar-dark bg-dark rounded-4 shadow-sm h-100">
+        <div class="container-fluid d-flex flex-lg-column p-2 h-100">
+          <div class="d-flex justify-content-between align-items-center w-100 mb-lg-4 px-1 px-lg-0 mt-2">
+            <a class="navbar-brand d-flex flex-row flex-lg-column align-items-center gap-2 m-0 text-decoration-none w-100 text-center" routerLink="/dashboard">
+              <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor" class="bi bi-braces text-white flex-shrink-0" viewBox="0 0 16 16"><path d="M2.114 8.063V7.9c1.005-.102 1.497-.615 1.497-1.6V4.503c0-1.094.39-1.538 1.354-1.538h.273V2h-.376C3.25 2 2.49 2.759 2.49 4.352v1.524c0 1.094-.376 1.456-1.49 1.456v1.299c1.114 0 1.49.362 1.49 1.456v1.524c0 1.593.759 2.352 2.372 2.352h.376v-.961h-.273c-.964 0-1.354-.444-1.354-1.538V9.663c0-.984-.492-1.497-1.497-1.6zM13.886 7.9v.163c-1.005.103-1.497.616-1.497 1.6v1.798c0 1.094-.39 1.538-1.354 1.538h-.273v.961h.376c1.613 0 2.372-.759 2.372-2.352v-1.524c0-1.094.376-1.456 1.49-1.456V7.332c-1.114 0-1.49-.362-1.49-1.456V4.352C13.51 2.759 12.75 2 11.138 2h-.376v.961h.273c.964 0 1.354.444 1.354 1.538V6.3c0 .984.492 1.497 1.497 1.6z"/></svg>
+              <span class="fw-bold text-white text-truncate w-100 text-start d-lg-none fs-5">InsightsDSA</span>
+            </a>
+            <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu"><span class="navbar-toggler-icon"></span></button>
+          </div>
+          <div class="collapse navbar-collapse w-100 flex-column flex-grow-1" id="navMenu">
+            <div class="flex-grow-1 w-100 d-flex flex-column justify-content-center">
+              <div class="nav-item text-center">
+                <a routerLink="/roadmap" class="nav-link text-white d-flex justify-content-center align-items-center py-3 rounded-3 text-decoration-none mx-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M15.817.113A.5.5 0 0 1 16 .5v14a.5.5 0 0 1-.402.49l-5 1a.502.502 0 0 1-.196 0L5.5 15.01l-4.902.98A.5.5 0 0 1 0 15.5v-14a.5.5 0 0 1 .402-.49l5-1a.5.5 0 0 1 .196 0L10.5.99l4.902-.98a.5.5 0 0 1 .415.103zM10 1.91l-4-.8v12.98l4 .8V1.91zm1 12.98 4-.8V1.11l-4 .8v12.98zm-6-.8V1.11l-4 .8v12.98l4-.8z"/></svg>
+                </a>
+              </div>
+            </div>
+            <div class="w-100 mt-auto px-2 pb-2">
+              <hr class="border-secondary opacity-50 mb-3 mx-1">
+              <a routerLink="/profile" class="btn w-100 d-flex justify-content-center align-items-center py-2 rounded-3 shadow-none border-0 mb-2" style="background-color: rgba(255,255,255,0.05);">
+                <img src="https://ui-avatars.com/api/?name=Code+Ninja&background=0D8ABC&color=fff&rounded=true&size=35" class="rounded-circle border border-secondary shadow-sm" width="35" height="35">
+              </a>
+              <a href="/logout" class="btn w-100 d-flex justify-content-center align-items-center py-2 rounded-3 shadow-none border-0 text-white">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z"/></svg>
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </aside>
+    <main class="content flex-grow-1 px-3 px-lg-4 pb-3 pb-lg-4 pt-3 bg-light overflow-auto">
+      <div class="container-fluid" style="max-width: 1400px;">
+        <div class="card border-0 rounded-4 shadow-sm mb-4 bg-white">
+          <div class="card-body p-4 p-lg-5">
+            <div class="row align-items-center">
+              <div class="col-md-8 d-flex align-items-center gap-4 mb-4 mb-md-0">
+                <img *ngIf="avatarUrl" [src]="avatarUrl" class="rounded-circle border border-2 shadow-sm flex-shrink-0" style="width: 85px; height: 85px;">
+                <div>
+                  <h3 class="fw-bold mb-1">{{user.name || 'Loading...'}}</h3>
+                  <div class="text-secondary mb-2" style="font-size: 0.95rem;">
+                    <span class="fw-medium text-dark">{{'@' + (user.username || '...')}}</span>
+                    <span class="mx-1">•</span>
+                    <span>{{user.email || '...'}}</span>
+                  </div>
+                  <span class="badge bg-danger-subtle text-danger shadow-sm border border-danger-subtle px-3 py-2 rounded-pill">🔥 {{streak}} Day Streak</span>
+                </div>
+              </div>
+              <div class="col-md-4 text-md-end">
+                <button class="btn btn-outline-dark fw-bold rounded-pill px-4 py-2" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                  <i class="bi bi-shield-lock me-2"></i>Change Password
+                </button>
+              </div>
+            </div>
+            <hr class="text-muted opacity-25 my-4">
+            <div class="row align-items-center">
+              <div class="col-md-8 mb-3 mb-md-0">
+                <h6 class="fw-bold mb-1"><i class="bi bi-robot text-primary me-2"></i>AI Coach Settings</h6>
+                <p class="text-muted small mb-0">Update your AI provider or API key for the Insights Engine.</p>
+              </div>
+              <div class="col-md-4 text-md-end">
+                <button (click)="aiKeyService.openSettings()" class="btn btn-dark rounded-pill fw-medium px-4 py-2"><i class="bi bi-key-fill me-2"></i>Configure Engine</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <h5 class="fw-bold mb-3 px-1 text-dark">Problem Solving Logs</h5>
+        <div class="card border-0 rounded-4 shadow-sm bg-white overflow-hidden">
+          <div class="table-responsive" style="max-height: calc(100vh - 320px); overflow-y: auto;">
+            <table class="table table-hover table-borderless align-middle mb-0">
+              <thead class="table-light border-bottom position-sticky top-0" style="z-index: 1;">
+                <tr>
+                  <th class="py-3 ps-4 text-secondary fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Problem</th>
+                  <th class="py-3 text-secondary fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Concept</th>
+                  <th class="py-3 text-secondary fw-bold text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Difficulty</th>
+                  <th class="py-3 pe-4 text-secondary fw-bold text-uppercase text-end" style="font-size: 0.8rem; letter-spacing: 0.5px;">Solved</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngIf="loading"><td colspan="4" class="text-center py-5 text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Fetching your logs...</td></tr>
+                <tr *ngIf="!loading && logs.length === 0"><td colspan="4" class="text-center py-5 text-muted"><i class="bi bi-code-slash fs-3 d-block mb-2"></i>You haven't solved any problems yet. Time to crush some DSA!</td></tr>
+                <tr *ngFor="let log of logs" class="border-bottom" style="cursor: pointer;">
+                  <td class="py-3 ps-4 fw-bold text-dark">{{log.problem}}</td>
+                  <td class="py-3 text-secondary"><i class="bi bi-tag me-1"></i>{{log.concept}}</td>
+                  <td class="py-3"><span class="badge rounded-pill px-3" [class]="'bg-' + log.color + '-subtle text-' + log.color + ' border border-' + log.color">{{log.difficulty}}</span></td>
+                  <td class="py-3 pe-4 text-end text-muted fw-medium">{{log.date}}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </main>
+    <!-- Change Password Modal -->
+    <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+          <div class="modal-header border-bottom-0 pb-0"><h5 class="modal-title fw-bold">Change Password</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <div *ngIf="passwordAlert" [class]="passwordAlertClass">{{passwordAlert}}</div>
+            <div class="mb-3"><label class="form-label fw-semibold" style="font-size: 0.85rem;">Current Password</label><input type="password" [(ngModel)]="currentPassword" class="form-control bg-light border-0"></div>
+            <div class="mb-3"><label class="form-label fw-semibold" style="font-size: 0.85rem;">New Password</label><input type="password" [(ngModel)]="newPassword" class="form-control bg-light border-0"></div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 fw-medium" data-bs-dismiss="modal">Cancel</button>
+            <button type="button" (click)="changePassword()" class="btn btn-dark rounded-3 px-4 fw-medium" [disabled]="savingPassword">
+              {{savingPassword ? 'Updating...' : 'Update Password'}}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

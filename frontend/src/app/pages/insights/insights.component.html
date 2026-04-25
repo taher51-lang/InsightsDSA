@@ -1,0 +1,98 @@
+<div class="container py-5">
+    
+    <div class="mb-5 d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-0">Insights <span class="fs-5 text-muted fw-normal">/ Skill Matrix</span></h2>
+        </div>
+        
+        <div class="header-actions">
+            <span id="global-status" class="badge" [ngClass]="loading ? 'bg-secondary' : 'bg-success'">
+                {{ loading ? 'Fetching data...' : 'Live' }}
+            </span>
+            <a routerLink="/dashboard" class="btn-back">
+                <i class="bi bi-arrow-left-short fs-5"></i>
+                Dashboard
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card premium-card-saas border-top-indigo p-4 h-100">
+                <div>
+                    <div class="icon-box-indigo">
+                        <span class="fs-5">🧠</span>
+                    </div>
+                </div>
+                <h5 class="mb-2">AI Diagnostic</h5>
+                <p id="ai-diagnostic" class="m-0">
+                    {{ diagnostic }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card premium-card-saas border-top-emerald p-4 h-100">
+                <div>
+                    <div class="icon-box-emerald">
+                        <span class="fs-5">🎯</span>
+                    </div>
+                </div>
+                <h5 class="mb-2">Interview Predictor</h5>
+                <p id="ai-predictor" class="m-0">
+                    {{ predictor }}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="chart-container text-center h-100 p-4">
+                <h6 class="fw-bold mb-3">Skill DNA</h6>
+                <div style="position: relative; height: 350px; width: 100%; display: flex; justify-content: center;">
+                    <div *ngIf="loading" id="chart-loading" class="loading-overlay w-100">
+                        <div class="spinner-border text-primary" role="status"></div>
+                    </div>
+                    <canvas id="radarChart" [style.display]="loading ? 'none' : 'block'"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <h5 class="fw-bold mb-4">Mastery by Concept</h5>
+            <div *ngIf="loading" id="accordion-loading" class="loading-overlay">
+                <div class="spinner-border text-primary" role="status"></div>
+            </div>
+            
+            <div *ngIf="!loading && conceptKeys.length === 0" class="alert alert-info">
+                Solve some problems to generate your mastery data!
+            </div>
+
+            <div *ngIf="!loading && conceptKeys.length > 0" class="accordion" id="conceptAccordion">
+                <div *ngFor="let concept of conceptKeys; let i = index" 
+                     class="accordion-item concept-card shadow-sm" 
+                     [style.border-left-color]="getConceptBorderColor(getConceptMastery(concept))">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" [attr.data-bs-target]="'#collapse-' + i">
+                            <div class="d-flex justify-content-between w-100 pe-3">
+                                <span><strong>{{ concept }}</strong> ({{ conceptHistory[concept]?.length || 0 }} Solved)</span>
+                                <span class="fw-bold" [ngClass]="getConceptTextColorClass(getConceptMastery(concept))">
+                                    {{ getConceptMastery(concept) }}% Mastery
+                                </span>
+                            </div>
+                        </button>
+                    </h2>
+                    <div [id]="'collapse-' + i" class="accordion-collapse collapse" data-bs-parent="#conceptAccordion">
+                        <div class="accordion-body p-0 accordion-body-scroll">
+                            <div *ngFor="let q of conceptHistory[concept]" class="question-row d-flex justify-content-between px-4">
+                                <span>{{ q.title }}</span>
+                                <span class="text-muted">{{ q.time }} | {{ q.autonomy }} Autonomy</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

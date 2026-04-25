@@ -1,0 +1,104 @@
+:host {
+    background-color: #f4f7f6;
+    font-family: 'Inter', sans-serif;
+    display: block;
+    min-height: 100vh;
+}
+
+.concept-card { background: white; border-radius: 12px; border-left: 5px solid #0d6efd; margin-bottom: 15px; }
+.question-row { font-size: 0.9rem; padding: 10px; border-bottom: 1px solid #eee; transition: background 0.2s; }
+.question-row:hover { background-color: #f8f9fa; }
+.chart-container { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+.loading-overlay { display: flex; justify-content: center; align-items: center; height: 300px; }
+/* The V1 Compromise: Stop the accordion from stretching to infinity */
+.accordion-body-scroll { max-height: 300px; overflow-y: auto; overflow-x: hidden; }
+.accordion-body-scroll::-webkit-scrollbar { width: 6px; }
+.accordion-body-scroll::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
+/* Premium V1 AI Cards */
+/* Premium V2 AI Cards - Modern SaaS Aesthetic */
+.premium-card-saas {
+    background: #ffffff;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(15, 23, 42, 0.03), 0 1px 3px rgba(15, 23, 42, 0.02);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.premium-card-saas:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06), 0 2px 5px rgba(15, 23, 42, 0.03);
+}
+
+/* Subtle accent lines at the top of the cards */
+.border-top-indigo { border-top: 4px solid #6366f1; }
+.border-top-emerald { border-top: 4px solid #10b981; }
+
+/* Refined Typography */
+.premium-card-saas h5 {
+    color: #1e293b;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.premium-card-saas p {
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Elegant Icon Wrappers */
+.icon-box-indigo {
+    background: #e0e7ff;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+
+.icon-box-emerald {
+    background: #d1fae5;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    margin-bottom: 16px;
+}
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    color: #64748b;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.btn-back:hover {
+    border-color: #6366f1;
+    color: #6366f1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+/* Refined Status Badge */
+#global-status {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 6px 12px;
+    border-radius: 6px;
+}

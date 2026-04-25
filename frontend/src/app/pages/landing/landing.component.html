@@ -1,0 +1,118 @@
+<div class="bg-extra"><i class="fas fa-project-diagram"></i></div>
+<div class="bg-extra-2"><i class="fas fa-code-branch"></i></div>
+
+<nav class="navbar navbar-expand-lg fixed-top animate-on-load">
+    <div class="container">
+        <a class="navbar-brand" routerLink="/">
+            <i class="fas fa-terminal me-2"></i>InsightsDSA
+        </a>
+        
+        <button class="navbar-toggler navbar-dark" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto align-items-center">
+                <li class="nav-item"><a class="nav-link me-3" href="#features">Features</a></li>
+                <li class="nav-item">
+                    @if (authenticated) {
+                        <a routerLink="/dashboard" class="btn btn-nav-login">Dashboard</a>
+                    } @else {
+                        <a routerLink="/login" class="btn btn-nav-login">Login</a>
+                    }
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<section class="hero-section animate-on-load delay-1">
+    <div class="hero-content container text-center">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h1 class="display-2 fw-bold mb-4">
+                    Identify Patterns. <br> <span class="text-decoration-underline">Master Logic.</span>
+                </h1>
+                <p class="lead text-muted mb-5 px-lg-5">
+                    InsightsDSA pairs advanced <strong>Spaced Repetition</strong> with the <strong>Insights Engine</strong> to diagnose logic gaps and automate your revision.
+                </p>
+                
+                @if (authenticated) {
+                    <a routerLink="/dashboard" class="btn btn-black btn-lg">
+                        Continue to Dashboard
+                    </a>
+                } @else {
+                    <a routerLink="/login" class="btn btn-black btn-lg">
+                        Start Solving Now
+                    </a>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="scroll-indicator">
+        <small>Scroll to Explore</small><br>
+        <i class="fas fa-chevron-down"></i>
+    </div>
+</section>
+
+<section id="features" class="py-5 bg-light animate-on-load delay-2" style="border-top: 2px solid #000;">
+    <div class="container py-5">
+        <div class="row g-4">
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <i class="fas fa-microchip feature-icon"></i>
+                    <h4 class="fw-bold mb-3 small text-uppercase">Insights Engine</h4>
+                    <p class="text-muted small">
+                        Move beyond test cases. Our AI engine audits your logic and gives diagnostic scores on approach clarity and efficiency.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <i class="fas fa-key feature-icon"></i>
+                    <h4 class="fw-bold mb-3 small text-uppercase">BYOK Model</h4>
+                    <p class="text-muted small">
+                        Total data sovereignty. Connect your own Gemini API keys to power the engine exactly when you need it.
+                    </p>
+                    <div class="security-note">
+                        <i class="fas fa-shield-alt"></i> <strong>Security:</strong> Keys are AES-256 encrypted and session-based.
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <i class="fas fa-sync-alt feature-icon"></i>
+                    <h4 class="fw-bold mb-3 small text-uppercase">Revision Algo</h4>
+                    <p class="text-muted small">
+                        Stop the forgetting curve. Our algorithm schedules problems for review based on your personalized mastery scores.
+                    </p>
+                </div>
+            </div>
+
+            <div class="col-md-6 col-lg-3">
+                <div class="feature-card">
+                    <i class="fas fa-stream feature-icon"></i>
+                    <h4 class="fw-bold mb-3 small text-uppercase">Mastery Timeline</h4>
+                    <p class="text-muted small">
+                        Visualize your growth. Watch your short-term solves convert into permanent patterns on an interactive visual timeline.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer>
+    <div class="container text-center">
+        <h5 class="fw-bold">InsightsDSA</h5>
+        <p class="mb-2">Built by <strong>Taher Rangwala</strong> for high-achieving engineers.</p>
+        <p class="mb-2 small"><a href="mailto:rangwalataher17&#64;gmail.com" class="text-muted text-decoration-none"><i class="fas fa-envelope me-2"></i>rangwalataher17&#64;gmail.com</a></p>
+        <p class="mb-4 small text-muted">Closed Source Project. Engineering is about Intent.</p>
+        <div class="mb-0">
+            &copy; 2026 InsightsDSA. All systems operational.
+        </div>
+    </div>
+</footer>

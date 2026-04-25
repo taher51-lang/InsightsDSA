@@ -1,0 +1,35 @@
+<div class="container py-4">
+    <header class="navbar-minimal">
+        <div>
+            <h1 class="fw-bold h3 mb-1">Milestones</h1>
+            <p class="text-muted small mb-0">Tracing your algorithmic growth.</p>
+        </div>
+        <a routerLink="/dashboard" class="btn-back">
+            <i class="bi bi-grid-fill me-2"></i> Dashboard
+        </a>
+    </header>
+
+    <main class="timeline-container mt-4">
+        <div *ngIf="milestones.length === 0" class="text-center py-5 text-muted">
+            Begin your first session to generate a timeline.
+        </div>
+        
+        <div *ngFor="let item of milestones; let i = index" class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="premium-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="icon-wrapper">
+                        <i class="bi {{ item.icon || 'bi-trophy' }}"></i>
+                    </div>
+                    <span class="date-text" *ngIf="item.achieved_at">{{ item.achieved_at | date:'mediumDate' }}</span>
+                </div>
+                <h5 class="fw-bold mb-1">{{ item.title }}</h5>
+                <p class="text-muted small mb-3">You've successfully integrated {{ item.count }} core patterns from this module into your long-term memory.</p>
+                <div class="d-flex gap-2">
+                    <span class="stat-badge"><i class="bi bi-check2-circle me-1"></i>Mastered</span>
+                    <span class="stat-badge"><i class="bi bi-lightning-charge me-1"></i>{{ item.count }} Solves</span>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>

@@ -1,0 +1,194 @@
+:host {
+    /* Exact match for your Dashboard Sidebar Black */
+    --brand-black: #1a1b1e; 
+    
+    /* Clean White */
+    --bg-body: #ffffff;
+    --bg-light: #f8f9fa;
+    
+    /* Text */
+    --text-main: #212529;
+    --text-muted: #6c757d;
+    
+    display: block;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-body);
+    color: var(--text-main);
+    overflow-x: hidden;
+}
+
+/* --- BACKGROUND & VOID FILLERS --- */
+:host {
+    /* Subtle engineering grid background */
+    background-image: 
+        linear-gradient(rgba(0, 0, 0, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+}
+
+.hero-section {
+    /* Forces hero to take up full screen height */
+    min-height: 100vh; 
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding: 0 !important; /* Overriding previous padding for layout control */
+    background-color: transparent !important; /* Pure White overridden by background grid on body */
+    text-align: center;
+}
+
+/* Subtle abstract logic nodes in background */
+.bg-extra {
+    position: absolute;
+    top: 20%;
+    left: 10%;
+    font-size: 8rem;
+    color: rgba(0,0,0,0.02);
+    z-index: -1;
+    user-select: none;
+}
+.bg-extra-2 {
+    position: absolute;
+    bottom: 20%;
+    right: 10%;
+    font-size: 10rem;
+    color: rgba(0,0,0,0.02);
+    z-index: -1;
+    user-select: none;
+}
+
+/* Scroll Down Indicator */
+.scroll-indicator {
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounce 2s infinite;
+    color: #6c757d;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    text-align: center;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0) translateX(-50%);}
+    40% {transform: translateY(-10px) translateX(-50%);}
+    60% {transform: translateY(-5px) translateX(-50%);}
+}
+
+.security-note {
+    font-size: 0.75rem;
+    color: #6c757d;
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    margin-top: 15px;
+}
+.security-note i {
+    color: #1a1b1e;
+    margin-right: 5px;
+}
+
+/* Ensuring hero content is centered properly */
+.hero-content {
+    width: 100%;
+    z-index: 1;
+}
+
+/* --- Animations --- */
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-on-load { 
+    opacity: 0; animation: slideUp 0.8s ease-out forwards; 
+}
+.delay-1 { 
+    animation-delay: 0.1s; 
+}
+.delay-2 { 
+    animation-delay: 0.2s; 
+}
+
+/* --- NAVBAR: Matches Sidebar Style --- */
+.navbar {
+    background-color: var(--brand-black);
+    padding: 15px 0;
+}
+.navbar-brand {
+    color: white !important;
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 0.5px;
+}
+.nav-link {
+    color: rgba(255,255,255,0.7) !important;
+    font-weight: 500;
+}
+.nav-link:hover {
+    color: white !important;
+}
+/* Login Button in Nav */
+.btn-nav-login {
+    border: 1px solid rgba(255,255,255,0.3);
+    color: white;
+    border-radius: 6px;
+    padding: 5px 20px;
+    transition: all 0.3s;
+    text-decoration: none;
+}
+.btn-nav-login:hover {
+    background: white;
+    color: var(--brand-black);
+}
+
+/* The "Black" Button */
+.btn-black {
+    background-color: var(--brand-black);
+    color: white;
+    border: none;
+    padding: 15px 45px;
+    font-weight: 600;
+    border-radius: 8px; /* Slightly rounded, like dashboard cards */
+    transition: transform 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+.btn-black:hover {
+    background-color: #000;
+    transform: translateY(-3px);
+    color: white;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+}
+
+/* --- FEATURE CARDS --- */
+.feature-card {
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    padding: 40px 30px;
+    height: 100%;
+    transition: all 0.3s ease;
+    background: white;
+}
+.feature-card:hover {
+    border-color: var(--brand-black);
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+}
+.feature-icon {
+    font-size: 2rem;
+    color: var(--brand-black);
+    margin-bottom: 20px;
+}
+
+/* --- FOOTER --- */
+footer {
+    background-color: var(--brand-black);
+    color: rgba(255,255,255,0.5);
+    padding: 60px 0;
+    font-size: 0.9rem;
+}
+footer h5 { color: white; margin-bottom: 20px; }
+footer a { color: rgba(255,255,255,0.5); text-decoration: none; }
+footer a:hover { color: white; }
