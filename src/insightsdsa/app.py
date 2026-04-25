@@ -13,7 +13,6 @@ from logging.handlers import RotatingFileHandler
 from flask import (
     Flask, abort, flash, jsonify, redirect, request, send_from_directory, session, url_for,
 )
-from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import and_, delete, exists, func, select, update
@@ -109,15 +108,6 @@ google = oauth.register(
     server_metadata_url=settings.google_openid_metadata_url, client_kwargs={'scope': 'openid email profile'},
 )
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user_email = session.get("user_email")
-        if not user_email or user_email not in settings.admin_emails:
-            return jsonify({"error": "Forbidden: Admin access required"}), 403
-        return f(*args, **kwargs)
-    return decorated_function
-
 # ═══════════════════════════════════════════
 #  API ENDPOINTS
 # ═══════════════════════════════════════════
@@ -135,15 +125,7 @@ def api_v1_csrf():
 def api_v1_auth_me():
     if "user_id" not in session:
         return jsonify({"authenticated": False})
-    is_admin = session.get("user_email") in settings.admin_emails
-    return jsonify({
-        "authenticated": True, 
-        "user_id": session["user_id"], 
-        "user_name": session.get("user_name"), 
-        "email": session.get("user_email"), 
-        "profile_pic": session.get("profile_pic"),
-        "is_admin": is_admin
-    })
+    return jsonify({"authenticated": True, "user_id": session["user_id"], "user_name": session.get("user_name"), "email": session.get("user_email"), "profile_pic": session.get("profile_pic")})
 
 @app.get("/api/v1/dashboard")
 def api_v1_dashboard():
@@ -686,43 +668,6 @@ def get_user_journey():
         return jsonify([{"title": r[0], "icon": r[1], "achieved_at": r[2].isoformat() if r[2] else None, "count": r[3]} for r in rows])
     except Exception:
         return jsonify({"error": "Internal Server Error"}), 500
-
-# ── Admin Routes ──
-@app.route('/api/admin/users', methods=['GET'])
-@admin_required
-def admin_list_users():
-    with get_session() as s:
-        # Get users and a count of their solved questions
-        stmt = (
-            select(
-                User.id, User.username, User.email, User.name,
-                func.count(UserProgress.question_id).label("solved_count")
-            )
-            .outerjoin(UserProgress, and_(User.id == UserProgress.user_id, UserProgress.is_solved.is_(True)))
-            .group_by(User.id)
-            .order_by(User.id.desc())
-        )
-        users = [dict(row) for row in s.execute(stmt).mappings().all()]
-        return jsonify(users)
-
-@app.route('/api/admin/users/<int:target_user_id>/reset', methods=['POST'])
-@admin_required
-def admin_reset_user(target_user_id):
-    try:
-        with get_session() as s:
-            # 1. Delete Postgres data
-            s.execute(delete(UserProgress).where(UserProgress.user_id == target_user_id))
-            s.execute(delete(ActivityLog).where(ActivityLog.user_id == target_user_id))
-            s.execute(delete(ChatMessage).where(ChatMessage.user_id == target_user_id))
-            
-            # 2. Clear Redis cache for this user
-            redis_key = f"user:{target_user_id}"
-            Redis.delete(redis_key)
-            
-            return jsonify({"status": "success", "message": f"Data reset for user {target_user_id}"})
-    except Exception as e:
-        _log.exception("Admin reset error")
-        return jsonify({"error": "Failed to reset user data"}), 500
 
 # ═══════════════════════════════════════════
 #  SPA CATCH-ALL ROUTES (serve Angular index.html)
