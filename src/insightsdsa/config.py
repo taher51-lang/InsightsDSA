@@ -77,6 +77,8 @@ class Settings:
     log_max_bytes: int
     log_backup_count: int
     admin_emails: list[str]
+    frontend_url: str | None
+
 
 
 @lru_cache(maxsize=1)
@@ -133,6 +135,7 @@ def get_settings() -> Settings:
         log_max_bytes=_env_int("LOG_MAX_BYTES", 102400),
         log_backup_count=_env_int("LOG_BACKUP_COUNT", 10),
         admin_emails=[e.strip() for e in (_env("ADMIN_EMAILS") or "").split(",") if e.strip()],
+        frontend_url=_env("FRONTEND_URL"),
     )
 
 

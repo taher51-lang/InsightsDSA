@@ -102,6 +102,13 @@ def encrypt_key(plain_text):
 def decrypt_key(encrypted_text):
     return cipher_suite.decrypt(encrypted_text.encode()).decode()
 
+def get_redirect_url(path):
+    if settings.frontend_url:
+        if not path.startswith('/'):
+            path = '/' + path
+        return f"{settings.frontend_url.rstrip('/')}{path}"
+    return path
+
 # ── Google OAuth ──
 oauth = OAuth(app)
 google = oauth.register(
@@ -154,13 +161,13 @@ def admin_reset_user(user_id):
             s.commit()
             
             # 2. Clear Redis keys if any (API keys)
-            # Keys are typically logiclens:keys:<user_id>
-            Redis.delete(f"logiclens:keys:{user_id}")
+            # Keys are stored as user:<user_id>
+            Redis.delete(f"user:{user_id}")
             
             return jsonify({"message": "User progress and AI history has been reset successfully."})
     except Exception as e:
         app.logger.error(f"Admin Error resetting user {user_id}: {e}")
-        return jsonify({"error": "Failed to reset user data"}), 500
+        return jsonify({"error": "Internal Server Error"}), 500
 
 # ═══════════════════════════════════════════
 #  API ENDPOINTS
@@ -182,7 +189,6 @@ def api_v1_auth_me():
     
     user_email = session.get("user_email")
     is_admin = user_email in settings.admin_emails
-    print(f"DEBUG: Admin Check - Email: {user_email}, Is Admin: {is_admin}, Admins: {settings.admin_emails}")
     
     return jsonify({
         "authenticated": True, 
@@ -220,7 +226,7 @@ def api_v1_retention():
 def login_google():
     if not settings.google_client_id or not settings.google_client_secret:
         flash("Google sign-in is not configured.")
-        return redirect("/login")
+        return redirect(get_redirect_url("/login"))
     redirect_uri = settings.google_redirect_uri or url_for('google_callback', _external=True)
     return google.authorize_redirect(redirect_uri)
 
@@ -231,42 +237,57 @@ def google_callback():
     except Exception as exc:
         app.logger.warning("Google OAuth error: %s", exc)
         flash("Google sign-in was cancelled or failed. Please try again.")
-        return redirect("/login")
+        return redirect(get_redirect_url("/login"))
     user_info = token.get('userinfo')
     if user_info is None:
         try:
             user_info = google.userinfo(token=token)
         except Exception:
             flash("Could not read your Google profile.")
-            return redirect("/login")
+            return redirect(get_redirect_url("/login"))
     email = user_info.get('email')
     if not email:
         flash("Google did not return an email for this account.")
-        return redirect("/login")
+        return redirect(get_redirect_url("/login"))
     g_id = user_info.get('sub')
     full_name = user_info.get('name', 'Explorer')
     first_name = (full_name.split() or ["Explorer"])[0]
     pic = user_info.get('picture', '')
     with get_session() as s:
-        existing_id = s.scalar(select(User.id).where(User.email == email))
-        if existing_id:
+        # Check for existing user by email
+        existing_user = s.execute(select(User).where(User.email == email)).scalar()
+        if existing_user:
             s.execute(update(User).where(User.email == email).values(google_id=g_id, profile_pic=pic))
-            user_id = existing_id
+            user_id = existing_user.id
         else:
-            u = User(username=first_name, name=full_name, email=email, google_id=g_id, profile_pic=pic)
+            # Handle username collisions for common names
+            base_username = first_name.lower().replace(" ", "")
+            final_username = base_username
+            while s.scalar(select(exists().where(User.username == final_username))):
+                import random
+                final_username = f"{base_username}{random.randint(1000, 9999)}"
+            
+            u = User(username=final_username, name=full_name, email=email, google_id=g_id, profile_pic=pic)
             s.add(u)
             s.flush()
             user_id = u.id
+        
+        # Preserve CSRF token while clearing session to prevent session fixation
+        csrf_token = session.get('csrf_token')
+        session.clear()
+        if csrf_token:
+            session['csrf_token'] = csrf_token
+            
         session["user_id"] = user_id
     session["user_email"] = email
     session["user_name"] = first_name
     session["profile_pic"] = pic
-    return redirect("/dashboard")
+    return redirect(get_redirect_url("/dashboard"))
 
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect('/')
+    return redirect(get_redirect_url('/'))
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -275,6 +296,13 @@ def login():
     userpass = data.get("userpass")
     if not username or not userpass:
         return jsonify({"error": "Missing credentials"}), 400
+        
+    # Basic Backend Validation
+    if len(username) < 3 or len(username) > 50:
+        return jsonify({"error": "Username must be 3-50 characters"}), 400
+    if len(userpass) < 6:
+        return jsonify({"error": "Password must be at least 6 characters"}), 400
+
     try:
         with get_session() as s:
             result = s.execute(select(User.id, User.username, User.email, User.name, User.userpassword, User.google_id).where(User.username == username)).mappings().first()
@@ -296,6 +324,13 @@ def login():
             if needs_upgrade:
                 new_hashed_password = generate_password_hash(userpass)
                 s.execute(update(User).where(User.id == result["id"]).values(userpassword=new_hashed_password))
+            
+            # Preserve CSRF token while clearing session
+            csrf_token = session.get('csrf_token')
+            session.clear()
+            if csrf_token:
+                session['csrf_token'] = csrf_token
+                
             session['user_id'] = result['id']
             session['user_name'] = result['username']
             session['user_email'] = result['email']
@@ -303,8 +338,8 @@ def login():
                 return jsonify({"message": "Login successful", "name": result['name']}), 200
             return jsonify({"message": "Login successful"}), 200
     except Exception as e:
-        print("Database Error in login:", e)
-        return jsonify({"error": "Server error"}), 500
+        app.logger.error(f"Database Error in login: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -424,7 +459,8 @@ def toggle_solve():
         return jsonify({"status": "success", "action": action})
     except Exception as e:
         s.rollback()
-        return jsonify({"error": str(e)}), 500
+        app.logger.error(f"Error toggling solve: {e}")
+        return jsonify({"error": "Internal Server Error"}), 500
     finally:
         s.close()
 
@@ -710,10 +746,12 @@ def get_similar(q_id):
 # ── Set API Key ──
 @app.route('/api/set-key', methods=['POST'])
 def set_api_key():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
     data = request.json
     api_key = data.get('api_key')
     provider = data.get('provider')
-    user_id = session.get("user_id")
     if api_key:
         encrypted_val = encrypt_key(api_key)
         redis_key = f"user:{user_id}"
