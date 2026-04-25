@@ -13,3 +13,250 @@
 2026-04-25 08:29:09,632 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
 2026-04-25 08:31:18,047 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
 2026-04-25 08:31:54,719 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 09:36:17,645 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 09:38:38,652 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 09:52:28,250 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 09:52:52,007 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 10:00:45,516 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 10:01:26,497 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:29,889 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:30,237 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:30,366 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:30,533 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:30,706 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:30,847 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:01:31,035 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:15,353 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:23,056 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:24,000 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:24,164 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:24,348 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:24,510 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:24,637 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:24,829 ERROR: Exception on /api/v1/auth/me [GET] [in /Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py:875]
+Traceback (most recent call last):
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "/Users/admin/Desktop/InsightsDSA_v2/venv/lib/python3.14/site-packages/flask/app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py", line 130, in api_v1_auth_me
+    is_admin = user_email in settings.admin_emails
+                             ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'Settings' object has no attribute 'admin_emails'
+2026-04-25 10:02:59,948 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:78]
+2026-04-25 10:06:24,577 INFO: LogicLens startup [in /Users/admin/Desktop/InsightsDSA_v2/src/insightsdsa/app.py:79]

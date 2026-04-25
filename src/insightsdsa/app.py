@@ -8,6 +8,7 @@ import logging
 import json
 import traceback
 from pathlib import Path
+from functools import wraps
 from logging.handlers import RotatingFileHandler
 
 from flask import (
@@ -109,6 +110,59 @@ google = oauth.register(
 )
 
 # ═══════════════════════════════════════════
+#  ADMIN TOOLS
+# ═══════════════════════════════════════════
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        user_email = session.get("user_email")
+        if not user_email or user_email not in settings.admin_emails:
+            return jsonify({"error": "Forbidden: Admin access required"}), 403
+        return f(*args, **kwargs)
+    return decorated_function
+
+@app.route('/api/admin/users', methods=['GET'])
+@admin_required
+def admin_list_users():
+    try:
+        with get_session() as s:
+            # Get users and a count of their solved questions
+            stmt = (
+                select(
+                    User.id, User.username, User.email, User.name,
+                    func.count(UserProgress.question_id).label("solved_count")
+                )
+                .outerjoin(UserProgress, and_(User.id == UserProgress.user_id, UserProgress.is_solved.is_(True)))
+                .group_by(User.id)
+                .order_by(User.id.desc())
+            )
+            users = [dict(row) for row in s.execute(stmt).mappings().all()]
+            return jsonify(users)
+    except Exception as e:
+        app.logger.error(f"Admin Error listing users: {e}")
+        return jsonify({"error": "Failed to list users"}), 500
+
+@app.route('/api/admin/users/<int:user_id>/reset', methods=['POST'])
+@admin_required
+def admin_reset_user(user_id):
+    try:
+        with get_session() as s:
+            # 1. Delete DB records
+            s.execute(delete(UserProgress).where(UserProgress.user_id == user_id))
+            s.execute(delete(ActivityLog).where(ActivityLog.user_id == user_id))
+            s.execute(delete(ChatMessage).where(ChatMessage.user_id == user_id))
+            s.commit()
+            
+            # 2. Clear Redis keys if any (API keys)
+            # Keys are typically logiclens:keys:<user_id>
+            Redis.delete(f"logiclens:keys:{user_id}")
+            
+            return jsonify({"message": "User progress and AI history has been reset successfully."})
+    except Exception as e:
+        app.logger.error(f"Admin Error resetting user {user_id}: {e}")
+        return jsonify({"error": "Failed to reset user data"}), 500
+
+# ═══════════════════════════════════════════
 #  API ENDPOINTS
 # ═══════════════════════════════════════════
 
@@ -125,7 +179,19 @@ def api_v1_csrf():
 def api_v1_auth_me():
     if "user_id" not in session:
         return jsonify({"authenticated": False})
-    return jsonify({"authenticated": True, "user_id": session["user_id"], "user_name": session.get("user_name"), "email": session.get("user_email"), "profile_pic": session.get("profile_pic")})
+    
+    user_email = session.get("user_email")
+    is_admin = user_email in settings.admin_emails
+    print(f"DEBUG: Admin Check - Email: {user_email}, Is Admin: {is_admin}, Admins: {settings.admin_emails}")
+    
+    return jsonify({
+        "authenticated": True, 
+        "user_id": session["user_id"], 
+        "user_name": session.get("user_name"), 
+        "email": user_email, 
+        "profile_pic": session.get("profile_pic"),
+        "is_admin": is_admin
+    })
 
 @app.get("/api/v1/dashboard")
 def api_v1_dashboard():
@@ -211,7 +277,7 @@ def login():
         return jsonify({"error": "Missing credentials"}), 400
     try:
         with get_session() as s:
-            result = s.execute(select(User.id, User.username, User.name, User.userpassword, User.google_id).where(User.username == username)).mappings().first()
+            result = s.execute(select(User.id, User.username, User.email, User.name, User.userpassword, User.google_id).where(User.username == username)).mappings().first()
             if not result:
                 return jsonify({"error": "Invalid Credentials"}), 401
             if result["userpassword"] is None and result["google_id"] is not None:
@@ -232,6 +298,7 @@ def login():
                 s.execute(update(User).where(User.id == result["id"]).values(userpassword=new_hashed_password))
             session['user_id'] = result['id']
             session['user_name'] = result['username']
+            session['user_email'] = result['email']
             if result["name"]:
                 return jsonify({"message": "Login successful", "name": result['name']}), 200
             return jsonify({"message": "Login successful"}), 200
@@ -677,7 +744,7 @@ def spa_root():
     return _serve_spa_index()
 
 _SPA_ROUTES = ["dashboard", "login", "loginpage", "questions/<path:rest>", "question/<path:rest>",
-               "memory", "roadmap", "resource", "profile", "insights", "journey", "about"]
+               "memory", "roadmap", "resource", "profile", "insights", "journey", "about", "admin"]
 
 @app.route("/<path:path>")
 def spa_catch_all(path):

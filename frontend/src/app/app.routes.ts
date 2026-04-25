@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth.guard';
 
+import { adminGuard } from './core/admin.guard';
+
 export const routes: Routes = [
   { path: '', loadComponent: () => import('./pages/landing/landing.component').then(m => m.LandingComponent) },
   { path: 'login', loadComponent: () => import('./pages/auth/auth.component').then(m => m.AuthComponent) },
@@ -15,5 +17,7 @@ export const routes: Routes = [
   { path: 'insights', canActivate: [authGuard], loadComponent: () => import('./pages/insights/insights.component').then(m => m.InsightsComponent) },
   { path: 'journey', canActivate: [authGuard], loadComponent: () => import('./pages/journey/journey.component').then(m => m.JourneyComponent) },
   { path: 'about', loadComponent: () => import('./pages/about/about.component').then(m => m.AboutComponent) },
+  { path: 'admin', canActivate: [adminGuard], loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent) },
   { path: '**', redirectTo: '' },
 ];
+

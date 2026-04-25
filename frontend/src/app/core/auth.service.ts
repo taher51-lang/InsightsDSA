@@ -9,6 +9,7 @@ export interface AuthUser {
   user_name?: string;
   email?: string;
   profile_pic?: string;
+  is_admin?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -20,7 +21,10 @@ export class AuthService {
   check(): Observable<AuthUser> {
     return this.http.get<AuthUser>('/api/v1/auth/me').pipe(
       tap(u => this._user = u),
-      catchError(() => of({ authenticated: false }))
+      catchError(() => {
+        this._user = { authenticated: false };
+        return of(this._user);
+      })
     );
   }
 

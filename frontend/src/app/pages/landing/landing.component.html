@@ -15,6 +15,11 @@
             <ul class="navbar-nav ms-auto align-items-center">
                 <li class="nav-item"><a class="nav-link me-3" href="#features">Features</a></li>
                 <li class="nav-item">
+                    @if (isAdmin) {
+                        <a routerLink="/admin" class="nav-link me-3 text-primary fw-bold">Admin</a>
+                    }
+                </li>
+                <li class="nav-item">
                     @if (authenticated) {
                         <a routerLink="/dashboard" class="btn btn-nav-login">Dashboard</a>
                     } @else {

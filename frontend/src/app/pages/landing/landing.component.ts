@@ -12,14 +12,17 @@ import { AuthService } from '../../core/auth.service';
 export class LandingComponent implements OnInit, AfterViewInit {
   private readonly auth = inject(AuthService);
   authenticated = false;
+  isAdmin = false;
 
   ngOnInit() {
     this.auth.check().subscribe({
       next: (m) => {
         this.authenticated = !!m.authenticated;
+        this.isAdmin = !!m.is_admin;
       },
       error: () => {
         this.authenticated = false;
+        this.isAdmin = false;
       }
     });
   }

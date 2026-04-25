@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 
+import { AuthService } from '../../core/auth.service';
+
 declare var Chart: any;
 
 @Component({
@@ -14,6 +16,7 @@ declare var Chart: any;
 })
 export class DashboardComponent implements OnInit, AfterViewInit {
   userName = '';
+  isAdmin = false;
   concepts: any[] = [];
   chartData: number[] = [0.5, 0.5, 0.5];
   retentionPct = 0;
@@ -26,9 +29,10 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   pulseBarWidth = '0%';
   pulseBarClass = 'progress-bar bg-dark';
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private auth: AuthService) {}
 
   ngOnInit() {
+    this.auth.check().subscribe(u => this.isAdmin = !!u.is_admin);
     this.http.get<any>('/api/v1/dashboard').subscribe(data => {
       this.userName = data.user_name || sessionStorage.getItem('name') || '';
       this.concepts = data.concepts || [];
