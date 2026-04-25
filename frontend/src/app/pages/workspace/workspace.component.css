@@ -12,3 +12,12 @@
 .conf-option { border-width: 2px !important; transition: all 0.2s ease; }
 .w-85 { max-width: 85%; }
 .ai-lock-overlay { z-index: 10; transition: opacity 0.3s; }
+
+/* Markdown Styles for Chat Messages */
+::ng-deep #chat-flow .rounded-4 p { margin-bottom: 0.5rem; }
+::ng-deep #chat-flow .rounded-4 p:last-child { margin-bottom: 0; }
+::ng-deep #chat-flow .rounded-4 code { background: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-size: 0.9em; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+::ng-deep #chat-flow .rounded-4 pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px; margin: 0.5rem 0; overflow-x: auto; }
+::ng-deep #chat-flow .rounded-4 pre code { background: transparent; color: inherit; padding: 0; font-size: 0.85em; }
+::ng-deep #chat-flow .rounded-4 ul, ::ng-deep #chat-flow .rounded-4 ol { margin-bottom: 0.5rem; padding-left: 1.25rem; }
+::ng-deep #chat-flow .rounded-4 strong { font-weight: 600; color: #1e293b; }

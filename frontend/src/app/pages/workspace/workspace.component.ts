@@ -4,9 +4,10 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
 import { AiKeyService } from '../../core/ai-key.service';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 
 declare var bootstrap: any;
-declare var marked: any;
 
 @Component({
   selector: 'app-workspace',
@@ -109,7 +110,11 @@ export class WorkspaceComponent implements OnInit, AfterViewInit {
       next: data => {
         const idx = this.chatMessages.findIndex(m => m.id === loaderId);
         if (idx >= 0) this.chatMessages.splice(idx, 1);
-        const parsed = typeof marked !== 'undefined' && marked.parse ? marked.parse(data.answer) : data.answer;
+        
+        // Render Markdown and Sanitize
+        const rawHtml = marked.parse(data.answer) as string;
+        const parsed = DOMPurify.sanitize(rawHtml);
+        
         this.chatMessages.push({role: 'ai', content: parsed});
         this.scrollChat();
       },
@@ -145,7 +150,11 @@ export class WorkspaceComponent implements OnInit, AfterViewInit {
     this.currentThreadId = this.savedHistoryData[0]?.thread_id || crypto.randomUUID();
     this.savedHistoryData.forEach(msg => {
       const uiRole = msg.role === 'assistant' ? 'ai' : 'user';
-      const content = uiRole === 'ai' && typeof marked !== 'undefined' ? marked.parse(msg.content) : msg.content;
+      let content = msg.content;
+      if (uiRole === 'ai') {
+        const rawHtml = marked.parse(msg.content) as string;
+        content = DOMPurify.sanitize(rawHtml);
+      }
       this.chatMessages.push({role: uiRole, content});
     });
     this.scrollChat();

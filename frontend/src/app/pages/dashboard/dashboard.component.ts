@@ -1,4 +1,4 @@
-import { Component, OnInit, AfterViewInit } from '@angular/core';
+import { Component, OnInit, AfterViewInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -14,7 +14,8 @@ declare var Chart: any;
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css',
 })
-export class DashboardComponent implements OnInit, AfterViewInit {
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+  private tooltips: any[] = [];
   userName = '';
   isAdmin = false;
   concepts: any[] = [];
@@ -59,9 +60,19 @@ export class DashboardComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit() {
-    // Initialize tooltips
-    const list = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    list.forEach((el: any) => new (window as any).bootstrap.Tooltip(el));
+    // Initialize tooltips and store instances
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    this.tooltips = tooltipTriggerList.map((el: any) => {
+      const t = new (window as any).bootstrap.Tooltip(el);
+      // Force hide on click to prevent sticking after navigation
+      el.addEventListener('click', () => t.hide());
+      return t;
+    });
+  }
+
+  ngOnDestroy() {
+    // Clean up tooltips to prevent memory leaks and stuck overlays
+    this.tooltips.forEach(t => t.dispose());
   }
 
   openRoadmap() {

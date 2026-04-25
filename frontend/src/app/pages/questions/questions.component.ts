@@ -24,4 +24,15 @@ export class QuestionsComponent implements OnInit {
       error: () => { this.loading = false; }
     });
   }
+
+  getSolvedCount(): number {
+    return this.questions.filter(q => q.is_solved).length;
+  }
+
+  getBadgeClass(diff: string): string {
+    if (diff === 'Easy') return 'bg-success-subtle text-success border-success';
+    if (diff === 'Medium') return 'bg-warning-subtle text-warning-emphasis border-warning';
+    if (diff === 'Hard') return 'bg-danger-subtle text-danger border-danger';
+    return 'bg-secondary-subtle border-secondary';
+  }
 }
