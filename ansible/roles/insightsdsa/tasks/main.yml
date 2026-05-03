@@ -90,9 +90,14 @@
     dest: "{{ insightsdsa_app_path }}/"
     archive: true
     checksum: true
+    owner: false
+    group: false
     delete: "{{ insightsdsa_sync_delete | bool }}"
     # Older ansible.posix has no exclude=; rsync_opts is always supported.
     rsync_opts: "{{ insightsdsa_sync_excludes | map('regex_replace', '^', '--exclude=') | list }}"
+    rsync_path: "{{ insightsdsa_remote_rsync_path }}"
+    use_ssh_args: true
+  become: false
   notify: Restart insightsdsa uwsgi
 
 - name: Create Python virtualenv
