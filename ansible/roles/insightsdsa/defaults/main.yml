@@ -31,6 +31,11 @@ insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
 insightsdsa_certbot_admin_email: ""
 
+# Google OAuth (Web client). Redirect URI must match Google Cloud Console exactly (see env.j2 auto https/http).
+insightsdsa_google_client_id: ""
+insightsdsa_google_client_secret: ""
+insightsdsa_google_redirect_uri: ""
+
 # Fernet-compatible key for ENCRYPTION_KEY in .env (python cryptography.fernet). Required for uwsgi startup.
 # Insecure Ansible-shipped sample — override with ansible-vault in production inventories.
 insightsdsa_encryption_key: "4mSm15fTGC7tQodX0RsgoJExANHeXx1Hh5gWzvAH29U="

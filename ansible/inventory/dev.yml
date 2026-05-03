@@ -13,6 +13,13 @@ all:
       ansible_connection: local
       # ansible_python_interpreter: /usr/bin/python3
   vars:
+    # Google OAuth: Web client IDs from Cloud Console → APIs & Services → Credentials.
+    # Authorized redirect URIs must include exactly (with selfsigned HTTPS):
+    #   https://dev.insightsdsa.local/login/callback
+    # Uncomment and paste (or use ansible-vault / host_vars — do not commit real secrets).
+    # insightsdsa_google_client_id: "YOUR_CLIENT_ID.apps.googleusercontent.com"
+    # insightsdsa_google_client_secret: "YOUR_SECRET"
+
     insightsdsa_tls_mode: selfsigned
     # Required: must match SAN on the certificate and how users reach the app.
     insightsdsa_server_name: dev.insightsdsa.local
