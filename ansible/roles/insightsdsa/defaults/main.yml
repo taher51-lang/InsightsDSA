@@ -24,7 +24,7 @@ insightsdsa_certbot_admin_email: ""
 insightsdsa_controller_source_dir: "{{ playbook_dir | dirname }}"
 # rsync deletes files on target that were removed locally (destructive mirror).
 insightsdsa_sync_delete: false
-# Paths under the repo root excluded from rsync (venv and deps rebuilt on target).
+# Passed as rsync --exclude (works with synchronize versions that lack exclude=).
 insightsdsa_sync_excludes:
   - .git
   - .venv

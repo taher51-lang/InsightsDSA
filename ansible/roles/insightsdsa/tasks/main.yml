@@ -91,7 +91,8 @@
     archive: true
     checksum: true
     delete: "{{ insightsdsa_sync_delete | bool }}"
-    exclude: "{{ insightsdsa_sync_excludes }}"
+    # Older ansible.posix has no exclude=; rsync_opts is always supported.
+    rsync_opts: "{{ insightsdsa_sync_excludes | map('regex_replace', '^', '--exclude=') | list }}"
   notify: Restart insightsdsa uwsgi
 
 - name: Create Python virtualenv
