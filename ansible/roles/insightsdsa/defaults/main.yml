@@ -24,6 +24,10 @@ insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
 insightsdsa_certbot_admin_email: ""
 
+# DATABASE_URL / bundled postgres+redis listeners (inventory overrides GitLab coexistence, etc.).
+insightsdsa_postgres_port: 5432
+insightsdsa_redis_port: 6379
+
 # Repo root on the Ansible controller (override in inventory).
 insightsdsa_controller_source_dir: "{{ playbook_dir | dirname }}"
 # rsync deletes files on target that were removed locally (destructive mirror).

@@ -26,12 +26,11 @@ insightsdsa_db_name: insightsdsa
 insightsdsa_db_user: insightsdsa
 insightsdsa_db_password: "change-me-in-vault"
 insightsdsa_postgres_host: 127.0.0.1
-# When insightsdsa_install_postgres is true, the postgres role configures this TCP port server-side.
-insightsdsa_postgres_port: 5432
+# Postgres/Redis TCP ports: defaults in ansible/roles/insightsdsa/defaults/main.yml — do not redefine
+# here or inventory overrides (e.g. dev.yml 5433/6380) lose to playbook group_vars.
+# postgres/redis roles set server listen port when insightsdsa_install_* is true.
 
 insightsdsa_redis_host: 127.0.0.1
-# When insightsdsa_install_redis is true, the redis role sets this TCP port server-side.
-insightsdsa_redis_port: 6379
 insightsdsa_redis_password: ""
 insightsdsa_redis_db: 0
 
