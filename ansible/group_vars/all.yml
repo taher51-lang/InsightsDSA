@@ -44,7 +44,7 @@ insightsdsa_session_cookie_samesite: Lax
 # Google OAuth: set in inventory/vault (not empty strings here — they override dev.yml). See role defaults + env.j2.
 
 # nginx server_name — default in role defaults; defining here loses to this file over inventory overrides.
-# Set per inventory (e.g. dev.insightsdsa.local, insightsdsa.app).
+# Set per inventory (e.g. dev.insightsdsa.app, insightsdsa.app).
 
 # TLS mode is set per inventory: dev (selfsigned) vs production (letsencrypt).
 # insightsdsa_tls_mode: none | selfsigned | letsencrypt

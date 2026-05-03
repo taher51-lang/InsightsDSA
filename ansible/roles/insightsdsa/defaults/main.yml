@@ -29,6 +29,8 @@ insightsdsa_nginx_error_log: /var/log/nginx/insightsdsa-error.log
 # TLS: none (HTTP only) | selfsigned (OpenSSL, dev) | letsencrypt (production).
 insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
+# When true, deletes existing self-signed cert+key before generate (e.g. after changing insightsdsa_server_name).
+insightsdsa_tls_selfsigned_regenerate: false
 insightsdsa_certbot_admin_email: ""
 
 # Google OAuth (Web client). Redirect URI must match Google Cloud Console exactly (see env.j2 auto https/http).

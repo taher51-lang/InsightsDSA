@@ -81,15 +81,36 @@
     mode: "0750"
   when: insightsdsa_tls_mode == 'selfsigned'
 
+- name: Remove self-signed TLS material when regeneration requested
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ insightsdsa_tls_fullchain_path }}"
+    - "{{ insightsdsa_tls_privkey_path }}"
+  when:
+    - insightsdsa_tls_mode == 'selfsigned'
+    - insightsdsa_tls_selfsigned_regenerate | bool
+
 - name: Generate OpenSSL self-signed certificate (dev)
   ansible.builtin.command:
-    cmd: >
-      openssl req -x509 -nodes -newkey rsa:2048
-      -days {{ insightsdsa_tls_selfsigned_days | int }}
-      -keyout {{ insightsdsa_tls_privkey_path }}
-      -out {{ insightsdsa_tls_fullchain_path }}
-      -subj "/CN={{ insightsdsa_server_name }}/O=InsightsDSA/C=US"
-      -addext "subjectAltName=DNS:{{ insightsdsa_server_name }}"
+    argv:
+      - openssl
+      - req
+      - -x509
+      - -nodes
+      - -newkey
+      - rsa:2048
+      - -days
+      - "{{ insightsdsa_tls_selfsigned_days | int | string }}"
+      - -keyout
+      - "{{ insightsdsa_tls_privkey_path }}"
+      - -out
+      - "{{ insightsdsa_tls_fullchain_path }}"
+      - -subj
+      - "/CN={{ insightsdsa_server_name }}/O=InsightsDSA/C=US"
+      - -addext
+      - "subjectAltName=DNS:{{ insightsdsa_server_name }}"
     creates: "{{ insightsdsa_tls_fullchain_path }}"
   when: insightsdsa_tls_mode == 'selfsigned'
 
