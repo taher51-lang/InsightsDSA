@@ -11,7 +11,7 @@ insightsdsa_python: python3
 # Postgres is external or already provisioned (set DATABASE_* via .env manually).
 insightsdsa_manage_postgres: true
 
-# Application UID/GID — uWSGI + app files; systemd service runs as this user.
+# Application Unix account (uWSGI/systemd/files). Matches role defaults; override in inventory when needed.
 insightsdsa_deploy_user: insightsdsa
 insightsdsa_deploy_group: insightsdsa
 

@@ -3,12 +3,16 @@
 insightsdsa_nginx_site_name: insightsdsa
 insightsdsa_systemd_unit: insightsdsa-uwsgi
 
-# Create UNIX user/group matching insightsdsa_deploy_user / insightsdsa_deploy_group.
+# InsightsDSA runs as this dedicated Unix account (systemd/uWSGI uid/gid primary group).
+# Lowercase POSIX name matches insightsdsa_deploy_* in inventory/group_vars when set there.
+insightsdsa_deploy_user: insightsdsa
+insightsdsa_deploy_group: insightsdsa
+# Create user/group above when insightsdsa_manage_app_unix_identity is true.
 insightsdsa_manage_app_unix_identity: true
-# Secondary groups for the app user (nginx worker typically runs as www-data).
+# Extra groups for the app user only (process still runs as insightsdsa_deploy_user).
+# nginx workers are www-data; membership + socket group below lets nginx use the uWSGI socket (660).
 insightsdsa_runtime_user_secondary_groups:
   - www-data
-# uWSGI unix socket is group-owned by this GID so nginx can connect (660).
 insightsdsa_uwsgi_socket_group: www-data
 
 # Install nginx/openssl/certbot via apt only when not already present (package_facts).
