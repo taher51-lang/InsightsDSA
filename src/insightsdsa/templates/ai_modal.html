@@ -1,0 +1,35 @@
+<div class="modal fade" id="aiSettingsModal" tabindex="-1" aria-labelledby="aiSettingsModalLabel">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg rounded-4">
+      <div class="modal-header bg-light border-0 rounded-top-4 p-4">
+        <h5 class="modal-title fw-bold"><i class="bi bi-cpu me-2 text-primary"></i>InsightsDSA Engine</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="mb-4">
+          <label for="ai-provider" class="form-label fw-bold text-muted small">SELECT AI PROVIDER</label>
+          <select id="ai-provider" class="form-select bg-light border-0 fw-medium" onchange="updateKeyUI()">
+            <option value="gemini">Google Gemini (Free Tier)</option>
+            <option value="openai">OpenAI (ChatGPT)</option>
+            <option value="grok">Grok (Xai)</option>
+          </select>
+        </div>
+        <div class="mb-4">
+          <label for="ai-api-key" class="form-label fw-bold text-muted small">YOUR API KEY</label>
+          <input type="password" id="ai-api-key" class="form-control bg-light border-0" placeholder="AIzaSy...">
+          <div class="form-text text-primary mt-2">Stored strictly in your browser.</div>
+        </div>
+        
+        <button class="btn btn-dark w-100 rounded-pill fw-bold py-2 mb-3" onclick="saveAIToLocalStorage()">
+          Save & Initialize
+        </button>
+
+        <div class="text-center">
+            <button type="button" class="btn btn-link text-muted small text-decoration-none" onclick="muteAiModal()">
+                Don't show this again
+            </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

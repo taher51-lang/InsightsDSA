@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Architect | InsightsDSA</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --pure-black: #000000;
+            --pure-white: #ffffff;
+            --off-white: #fcfcfc;
+            --border-light: #f1f5f9;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background-color: var(--pure-white);
+            color: var(--brand-black);
+            overflow-x: hidden;
+        }
+
+        /* --- Header Navigation --- */
+        .page-nav {
+            padding: 2.5rem 0;
+        }
+
+        .btn-dashboard {
+            background: var(--pure-black);
+            color: var(--pure-white) !important;
+            border-radius: 12px;
+            padding: 10px 24px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-dashboard:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        /* --- SaaS Card Structure --- */
+        .saas-card {
+            background: var(--off-white);
+            border: 1px solid var(--border-light);
+            border-radius: 32px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.03);
+            overflow: hidden;
+        }
+
+        .content-padding {
+            padding: 4.5rem;
+        }
+
+        .manifest-badge {
+            background: #f1f1f1;
+            color: var(--pure-black);
+            padding: 6px 14px;
+            border-radius: 100px;
+            font-size: 0.7rem;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 2rem;
+            display: inline-block;
+        }
+
+        /* Metric Grid */
+        .metric-pill {
+            background: var(--pure-white);
+            border: 1px solid var(--border-light);
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+        }
+
+        /* Profile Sidebar */
+        .profile-card {
+            background: var(--pure-black);
+            color: var(--pure-white);
+            border-radius: 28px;
+            padding: 3rem;
+            height: 100%;
+        }
+
+        .avatar-box {
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Tech Pills */
+        .tech-pill {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.7);
+            padding: 6px 14px;
+            border-radius: 10px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin: 4px;
+            display: inline-block;
+        }
+
+        /* Contact Text */
+        .email-display {
+            color: var(--pure-black);
+            font-weight: 700;
+            font-size: 1.1rem;
+            text-decoration: none;
+            border-bottom: 2px solid var(--pure-black);
+            padding-bottom: 4px;
+            transition: opacity 0.2s;
+        }
+
+        .email-display:hover {
+            opacity: 0.6;
+            color: var(--pure-black);
+        }
+
+        /* Reveal Animation */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 1s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        .reveal.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        /* =========================================
+           📱 MOBILE RESPONSIVE FIXES (ABOUT US)
+           ========================================= */
+        @media (max-width: 991px) {
+            /* 1. Shrink the massive 72px padding */
+            .content-padding {
+                padding: 2rem !important;
+            }
+
+            /* 2. Scale down the Hero Text */
+            .display-4 {
+                font-size: 2.5rem;
+                line-height: 1.2;
+            }
+
+            /* 3. Adjust the Black Profile Card */
+            .col-lg-5.p-4.p-md-5 {
+                padding: 1rem !important; /* Removes outer gap on mobile */
+            }
+            .profile-card {
+                padding: 2rem;
+                border-radius: 24px;
+            }
+
+            /* 4. Align the Metric Pills Horizontally on Mobile */
+            /* Prevents the 3 pills from stacking vertically and taking up the whole screen */
+            .row.g-3.mb-5 {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .col-sm-4 {
+                flex: 1 1 30%; /* Makes them sit side-by-side */
+                min-width: 100px;
+            }
+            .metric-pill {
+                padding: 15px 10px;
+            }
+            .metric-pill h4 {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Tweak for extremely small screens */
+        @media (max-width: 400px) {
+            .display-4 { font-size: 2rem; }
+            .content-padding { padding: 1.5rem !important; }
+        }
+    </style>
+</head>
+<body>
+
+<header class="page-nav">
+    <div class="container d-flex justify-content-between align-items-center">
+        <h4 class="fw-bold m-0 text-uppercase" style="letter-spacing: -1px;">InsightsDSA</h4>
+        <a href="/dashboard" class="btn-dashboard">
+            <i class="fas fa-arrow-left me-2"></i> Dashboard
+        </a>
+    </div>
+</header>
+
+<section class="pb-5">
+    <div class="container">
+        <div class="saas-card reveal">
+            <div class="row g-0">
+                
+                <div class="col-lg-7 content-padding bg-white">
+                    <span class="manifest-badge text-uppercase">Project_Manifest // 2026</span>
+                    <h2 class="display-4 fw-bold mb-4">The Architect</h2>
+                    
+                    <p class="lead text-muted mb-4">
+                        I am a <strong>4th Semester B.Tech student</strong> at <strong>LJIET, Ahmedabad</strong>, specializing in AI & Machine Learning.
+                    </p>
+                    
+                    <p class="text-muted mb-5" style="line-height: 1.8;">
+                        I built <strong>InsightsDSA</strong> to bridge the gap between "passing test cases" and truly "retaining" logic. This platform is a solo mission to transform short-term solves into permanent patterns using <strong>LogicLens AI</strong> diagnostics.
+                    </p>
+
+                    <div class="row g-3 mb-5">
+                        <div class="col-sm-4">
+                            <div class="metric-pill shadow-sm">
+                                <h4 class="fw-bold mb-0">100%</h4>
+                                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.6rem;">Solo Developer</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="metric-pill shadow-sm">
+                                <h4 class="fw-bold mb-0">AI</h4>
+                                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.6rem;">Diagnostic</small>
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <div class="metric-pill shadow-sm">
+                                <h4 class="fw-bold mb-0">4th</h4>
+                                <small class="text-uppercase fw-bold text-muted" style="font-size: 0.6rem;">Semester</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-4 border-top">
+                        <p class="small fw-bold text-uppercase text-muted mb-3">Direct Correspondence</p>
+                        <a href="mailto:rangwalataher17@gmail.com" class="email-display">
+                            rangwalataher17@gmail.com
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-5 p-4 p-md-5">
+                    <div class="profile-card d-flex flex-column shadow-lg">
+                        <div class="avatar-box">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        
+                        <h3 class="fw-bold mb-1">Taher</h3>
+                        <p class="text-uppercase small fw-bold mb-5" style="color: rgba(255,255,255,0.5); letter-spacing: 2px;">
+                            Full-Stack AI Engineer
+                        </p>
+                        
+                        <div class="mb-5">
+                            <h6 class="fw-bold text-uppercase small mb-3" style="color: rgba(255,255,255,0.3); letter-spacing: 1.5px;">Current Infrastructure</h6>
+                            <div class="tech-stack">
+                                <span class="tech-pill">Python / Flask</span>
+                                <span class="tech-pill">Redis</span>
+                                <span class="tech-pill">PostgreSQL</span>
+                                <span class="tech-pill">LangChain</span>
+                                <span class="tech-pill">Langgraph</span>
+                                <span class="tech-pill">Bootstrap 5</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-auto pt-4 border-top border-secondary">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-university me-3" style="color: rgba(255,255,255,0.4);"></i>
+                                <small style="color: rgba(255,255,255,0.5); font-weight: 600;" class="text-uppercase small">
+                                    LJIET Ahmedabad // AIML
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const reveal = document.querySelector('.reveal');
+        setTimeout(() => {
+            reveal.classList.add('active');
+        }, 150);
+    });
+</script>
+
+</body>
+</html>

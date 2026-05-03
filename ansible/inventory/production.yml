@@ -1,0 +1,23 @@
+---
+# Production targets: HTTPS with Let's Encrypt certificates (certbot nginx plugin).
+#
+# DNS must point insightsdsa_server_name at this host before first deploy, or issuance fails.
+#
+# Typical usage:
+#   ansible-playbook -i ansible/inventory/production.yml ansible/site.yml
+#
+all:
+  hosts:
+    prod:
+      ansible_host: prod
+      ansible_user: ubuntu
+      # ansible_python_interpreter: /usr/bin/python3
+  vars:
+    insightsdsa_tls_mode: letsencrypt
+    insightsdsa_server_name: insightsdsa.app
+    # Required for Let's Encrypt ACME account / expiry notices.
+    insightsdsa_certbot_admin_email: ops@example.com
+    insightsdsa_repo_url: "https://github.com/taher51-lang/InsightsDSA.git"
+    insightsdsa_repo_version: main
+    insightsdsa_install_postgres: true
+    insightsdsa_install_redis: true

@@ -1,0 +1,67 @@
+<div class="container py-4 py-lg-5">
+  <h1 class="h3 fw-bold mb-2">Memory &amp; retention</h1>
+  <p class="text-muted mb-4">
+    Due reviews and how each concept is trending from your ease scores.
+  </p>
+
+  @if (loadError) {
+    <div class="alert alert-danger">{{ loadError }}</div>
+  }
+
+  @if (data) {
+    <div class="row g-4">
+      <div class="col-lg-7">
+        <div class="card shadow-sm border-0 rounded-4">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">Due for review</h2>
+            @if (data.queue.length === 0) {
+              <p class="text-muted mb-0">Nothing due today. Great work.</p>
+            } @else {
+              <ul class="list-group list-group-flush rounded-3 border">
+                @for (q of data.queue; track q.question_id) {
+                  <li class="list-group-item d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                      <div class="fw-semibold">{{ q.question_title }}</div>
+                      <div class="small text-muted">{{ q.concept_title }}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="badge bg-light text-dark border">interval {{ q.days_interval ?? '—' }}</span>
+                      <a class="btn btn-sm btn-dark" [routerLink]="['/question', q.question_id]">Open</a>
+                    </div>
+                  </li>
+                }
+              </ul>
+            }
+          </div>
+        </div>
+      </div>
+      <div class="col-lg-5">
+        <div class="card shadow-sm border-0 rounded-4">
+          <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">By concept</h2>
+            <div class="table-responsive">
+              <table class="table table-sm align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th>Concept</th>
+                    <th class="text-end">Solved</th>
+                    <th class="text-end">Signal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (s of data.stats; track s.name) {
+                    <tr>
+                      <td>{{ s.name }}</td>
+                      <td class="text-end">{{ s.solved }}</td>
+                      <td class="text-end small">{{ signalLabel(s.signal) }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>

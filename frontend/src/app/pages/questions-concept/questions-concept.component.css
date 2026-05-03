@@ -1,0 +1,22 @@
+.page-bg {
+  background: #f4f5f7;
+}
+
+.back-link:hover {
+  color: var(--brand-black, #1a1b1e) !important;
+}
+
+.concept-emoji {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.status-dot {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+}

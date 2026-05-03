@@ -1,0 +1,141 @@
+---
+- name: Require certbot email for Let's Encrypt
+  ansible.builtin.assert:
+    that:
+      - insightsdsa_certbot_admin_email | length > 0
+    fail_msg: >-
+      Set insightsdsa_certbot_admin_email in inventory (required for ACME registration).
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Install nginx and OpenSSL
+  ansible.builtin.apt:
+    name:
+      - nginx
+      - openssl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install Certbot nginx plugin
+  ansible.builtin.apt:
+    name:
+      - certbot
+      - python3-certbot-nginx
+    state: present
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Check existing Let's Encrypt certificate
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ insightsdsa_server_name }}/fullchain.pem"
+  register: insightsdsa_le_cert_stat
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Record Let's Encrypt certificate presence (no LE mode)
+  ansible.builtin.set_fact:
+    insightsdsa_le_cert_present: false
+  when: insightsdsa_tls_mode != 'letsencrypt'
+
+- name: Record Let's Encrypt certificate presence (LE mode)
+  ansible.builtin.set_fact:
+    insightsdsa_le_cert_present: "{{ insightsdsa_le_cert_stat.stat.exists | default(false) }}"
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Set TLS material paths (self-signed)
+  ansible.builtin.set_fact:
+    insightsdsa_tls_fullchain_path: /etc/ssl/certs/insightsdsa-selfsigned.crt
+    insightsdsa_tls_privkey_path: /etc/ssl/private/insightsdsa-selfsigned.key
+  when: insightsdsa_tls_mode == 'selfsigned'
+
+- name: Set TLS material paths (Let's Encrypt)
+  ansible.builtin.set_fact:
+    insightsdsa_tls_fullchain_path: "/etc/letsencrypt/live/{{ insightsdsa_server_name }}/fullchain.pem"
+    insightsdsa_tls_privkey_path: "/etc/letsencrypt/live/{{ insightsdsa_server_name }}/privkey.pem"
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Ensure private key directory exists (self-signed)
+  ansible.builtin.file:
+    path: /etc/ssl/private
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  when: insightsdsa_tls_mode == 'selfsigned'
+
+- name: Generate OpenSSL self-signed certificate (dev)
+  ansible.builtin.command:
+    cmd: >
+      openssl req -x509 -nodes -newkey rsa:2048
+      -days {{ insightsdsa_tls_selfsigned_days | int }}
+      -keyout {{ insightsdsa_tls_privkey_path }}
+      -out {{ insightsdsa_tls_fullchain_path }}
+      -subj "/CN={{ insightsdsa_server_name }}/O=InsightsDSA/C=US"
+      -addext "subjectAltName=DNS:{{ insightsdsa_server_name }}"
+    creates: "{{ insightsdsa_tls_fullchain_path }}"
+  when: insightsdsa_tls_mode == 'selfsigned'
+
+- name: Set HTTPS enablement for nginx (initial)
+  ansible.builtin.set_fact:
+    insightsdsa_https_enabled: >-
+      {{
+        (insightsdsa_tls_mode == 'selfsigned')
+        or (insightsdsa_tls_mode == 'letsencrypt' and insightsdsa_le_cert_present | bool)
+      }}
+
+- name: Remove default nginx site
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx
+
+- name: Install nginx site for InsightsDSA
+  ansible.builtin.template:
+    src: nginx-insightsdsa.conf.j2
+    dest: "/etc/nginx/sites-available/{{ insightsdsa_nginx_site_name }}.conf"
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable nginx site
+  ansible.builtin.file:
+    src: "/etc/nginx/sites-available/{{ insightsdsa_nginx_site_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ insightsdsa_nginx_site_name }}.conf"
+    state: link
+  notify: Reload nginx
+
+- name: Ensure nginx is enabled and started
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true
+
+- name: Obtain Let's Encrypt certificate
+  ansible.builtin.command: >-
+    certbot certonly --nginx --non-interactive --agree-tos
+    --email {{ insightsdsa_certbot_admin_email }}
+    -d {{ insightsdsa_server_name }}
+  register: insightsdsa_certbot_obtain
+  changed_when: >-
+    ('Congratulations' in (insightsdsa_certbot_obtain.stdout | default('')))
+    or ('Successfully received certificate' in (insightsdsa_certbot_obtain.stdout | default('')))
+  failed_when: insightsdsa_certbot_obtain.rc != 0
+  when:
+    - insightsdsa_tls_mode == 'letsencrypt'
+    - not (insightsdsa_le_cert_present | bool)
+
+- name: Refresh Let's Encrypt certificate presence after certbot
+  ansible.builtin.stat:
+    path: "/etc/letsencrypt/live/{{ insightsdsa_server_name }}/fullchain.pem"
+  register: insightsdsa_le_cert_stat_after
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Update HTTPS enablement after Let's Encrypt issuance
+  ansible.builtin.set_fact:
+    insightsdsa_https_enabled: "{{ insightsdsa_le_cert_stat_after.stat.exists | default(false) }}"
+  when: insightsdsa_tls_mode == 'letsencrypt'
+
+- name: Redeploy nginx site with HTTPS (Let's Encrypt)
+  ansible.builtin.template:
+    src: nginx-insightsdsa.conf.j2
+    dest: "/etc/nginx/sites-available/{{ insightsdsa_nginx_site_name }}.conf"
+    mode: "0644"
+  notify: Reload nginx
+  when: insightsdsa_tls_mode == 'letsencrypt'

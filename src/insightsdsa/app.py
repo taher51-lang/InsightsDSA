@@ -393,22 +393,61 @@ def get_user_stats():
         total_solved, streak = getStreak(user_id, s)
         return jsonify({"total_solved": total_solved, "streak": streak})
 
+def _concept_questions_list(concept_id: int, user_id: int, s) -> list:
+    solved_exists = exists(
+        select(1).where(
+            and_(UserProgress.question_id == Question.id, UserProgress.user_id == user_id),
+        ),
+    )
+    stmt = (
+        select(
+            Question.id,
+            Question.title,
+            Question.difficulty,
+            Question.link,
+            solved_exists.label("is_solved"),
+        ).where(Question.concept_id == concept_id)
+    )
+    questions = []
+    for row in s.execute(stmt).mappings().all():
+        d = dict(row)
+        d["is_solved"] = bool(d["is_solved"])
+        questions.append(d)
+    difficulty_map = {"Easy": 1, "Medium": 2, "Hard": 3}
+    questions.sort(key=lambda x: difficulty_map.get(x["difficulty"], 4))
+    return questions
+
+
 @app.route("/api/get_questions/<int:concept_id>")
 def get_questions_api(concept_id):
-    user_id = session.get('user_id')
-    if 'user_id' not in session:
+    user_id = session.get("user_id")
+    if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
     with get_session() as s:
-        solved_exists = exists(select(1).where(and_(UserProgress.question_id == Question.id, UserProgress.user_id == user_id)))
-        stmt = select(Question.id, Question.title, Question.difficulty, Question.link, solved_exists.label("is_solved")).where(Question.concept_id == concept_id)
-        questions = []
-        for row in s.execute(stmt).mappings().all():
-            d = dict(row)
-            d["is_solved"] = bool(d["is_solved"])
-            questions.append(d)
-        difficulty_map = {"Easy": 1, "Medium": 2, "Hard": 3}
-        questions.sort(key=lambda x: difficulty_map.get(x['difficulty'], 4))
+        questions = _concept_questions_list(concept_id, int(user_id), s)
     return jsonify(questions)
+
+
+@app.get("/api/v1/concepts/<int:concept_id>/questions")
+def api_v1_concept_questions(concept_id):
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+    with get_session() as s:
+        concept = s.get(Concept, concept_id)
+        if concept is None:
+            return jsonify({"error": "Concept not found"}), 404
+        questions = _concept_questions_list(concept_id, int(user_id), s)
+    return jsonify(
+        {
+            "concept": {
+                "id": concept.id,
+                "title": concept.title,
+                "icon": concept.icon or "",
+            },
+            "questions": questions,
+        },
+    )
 
 @app.route("/api/get_question_details/<int:q_id>")
 def get_question_details(q_id):

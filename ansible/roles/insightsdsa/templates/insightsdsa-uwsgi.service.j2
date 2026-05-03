@@ -1,0 +1,18 @@
+[Unit]
+Description=uWSGI InsightsDSA (Flask + SPA)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ insightsdsa_deploy_user }}
+Group={{ insightsdsa_deploy_group }}
+WorkingDirectory={{ insightsdsa_app_path }}
+EnvironmentFile=-{{ insightsdsa_app_path }}/.env
+RuntimeDirectory=uwsgi/insightsdsa
+ExecStart={{ insightsdsa_app_path }}/.venv/bin/uwsgi --ini {{ insightsdsa_app_path }}/uwsgi.ini
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

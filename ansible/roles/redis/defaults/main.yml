@@ -1,0 +1,6 @@
+---
+redis_apt_packages:
+  - redis-server
+
+# If set, adds requirepass to redis.conf (recommended in production).
+insightsdsa_redis_password: ""

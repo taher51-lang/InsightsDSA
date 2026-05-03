@@ -1,0 +1,34 @@
+/* Premium Table Styling */
+.table {
+    border-collapse: separate;
+    border-spacing: 0 12px; /* Adds space between rows */
+}
+
+.table tr {
+    background-color: white;
+    transition: all 0.2s ease;
+}
+
+.table tbody tr:hover {
+    transform: translateY(-2px); /* Subtle lift effect */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    background-color: #fcfcfc !important;
+}
+
+/* Rounded corners for individual rows */
+.table tr td:first-child { border-radius: 12px 0 0 12px; }
+.table tr td:last-child { border-radius: 0 12px 12px 0; }
+
+.table td {
+    padding: 20px 15px !important; /* Generous padding for a "Classy" look */
+    border: none !important;
+}
+
+/* Difficulty Badge Styling */
+.badge-premium {
+    padding: 6px 12px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+}

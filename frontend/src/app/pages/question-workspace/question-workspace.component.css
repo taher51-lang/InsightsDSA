@@ -1,0 +1,43 @@
+.workspace {
+  min-height: calc(100vh - 52px);
+  display: flex;
+  flex-direction: column;
+}
+
+.ws-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.ws-pane {
+  max-height: calc(100vh - 110px);
+  overflow-y: auto;
+}
+
+.ws-chat {
+  min-height: 320px;
+  max-height: calc(100vh - 110px);
+}
+
+@media (min-width: 992px) {
+  .ws-chat {
+    max-height: calc(100vh - 110px);
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+}
+
+.modal.d-block {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  overflow-y: auto;
+}
+
+.desc-main {
+  font-weight: 600;
+}

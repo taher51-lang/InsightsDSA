@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Problem Workspace | InsightsDSA</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- <style>
+        :root {
+            --bg-body: #f8fafc;        /* Soft White */
+            --bg-card: #ffffff;        /* Pure White */
+            --border: #e2e8f0;         /* Soft Gray Border */
+            --text-main: #1e293b;      /* Deep Slate Text */
+            --text-muted: #64748b;
+            --primary: #4f46e5;        /* Indigo */
+            --ai-chat-bg: #f1f5f9;     /* Light Gray for AI bubbles */
+        }
+
+        body, html {
+            height: 100%; margin: 0; overflow: hidden;
+            background-color: var(--bg-body); color: var(--text-main);
+            font-family: 'Inter', -apple-system, system-ui, sans-serif;
+        }
+        .conf-option {
+    border-width: 2px !important;
+    transition: all 0.2s ease;
+}
+        /* Layout Architecture */
+        .top-nav { 
+            height: 64px; 
+            background: var(--bg-card); 
+            border-bottom: 1px solid var(--border); 
+            z-index: 1000; 
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .main-wrapper { height: calc(100vh - 64px); }
+        .pane { height: 100%; overflow-y: auto; padding: 2.5rem; background: var(--bg-card); }
+        
+        /* Description Styling */
+        .desc-area { line-height: 1.8; font-size: 1.05rem; color: #334155; }
+        .desc-area pre { 
+            background: #fdfdfd; 
+            padding: 1.2rem; 
+            border-radius: 12px; 
+            border: 1px solid var(--border); 
+            margin-top: 1rem;
+            color: #0f172a;
+        }
+
+        /* AI Tutor Section (The Right Pane) */
+        .ai-pane { background-color: #f8fafc !important; }
+        .chat-bubble {
+            background: var(--ai-chat-bg);
+            border-radius: 16px;
+            padding: 12px 16px;
+            max-width: 85%;
+            font-size: 0.95rem;
+        }
+
+        /* Custom Scrollbars for White Theme */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        #loading-screen {
+            position: fixed; inset: 0; background: #ffffff;
+            display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        /* Ensure the AI Pane takes up the full available height without expanding */
+.ai-pane {
+    height: 100%;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* The Secret Sauce: min-height: 0 allows the flex-item to shrink and scroll */
+#chat-flow {
+    flex: 1 1 0%; 
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    scroll-behavior: smooth; /* Makes the auto-scroll look nice */
+}
+
+/* Styling the scrollbar to match your sleek white theme */
+#chat-flow::-webkit-scrollbar {
+    width: 5px;
+}
+#chat-flow::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+#chat-flow::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+    </style> -->
+    <style>
+    :root {
+        --bg-body: #f8fafc;
+        --bg-card: #ffffff;
+        --border: #e2e8f0;
+        --text-main: #1e293b;
+        --text-muted: #64748b;
+        --primary: #4f46e5;
+        --ai-chat-bg: #f1f5f9;
+    }
+
+    body, html { 
+        height: 100%; margin: 0; 
+        background-color: var(--bg-body); color: var(--text-main);
+        font-family: 'Inter', -apple-system, system-ui, sans-serif;
+        /* Remove overflow: hidden here so mobile can scroll the whole page */
+    }
+
+    /* DESKTOP ONLY: Lock the viewport */
+    @media (min-width: 992px) {
+        body { overflow: hidden; }
+        .main-wrapper { height: calc(100vh - 64px); }
+        .pane { height: 100%; overflow-y: auto; }
+        .ai-pane { height: 100%; max-height: 100%; }
+    }
+
+    /* MOBILE & TABLET: Stack and Scroll */
+    @media (max-width: 991.98px) {
+        .main-wrapper { height: auto; overflow-y: auto; }
+        .pane { height: auto; padding: 1.5rem !important; border-bottom: 8px solid #f1f5f9; }
+        .ai-pane { height: 70vh; min-height: 500px; } /* Give AI a fixed height on mobile */
+        #q-title { font-size: 0.95rem; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .top-nav { padding-left: 10px !important; padding-right: 10px !important; }
+        #solve-btn { padding: 8px 12px !important; font-size: 0.8rem; }
+    }
+
+    .top-nav { 
+        height: 64px; 
+        background: var(--bg-card); 
+        border-bottom: 1px solid var(--border); 
+        z-index: 1000; 
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .pane { padding: 2.5rem; background: var(--bg-card); }
+    .desc-area { line-height: 1.8; font-size: 1.05rem; color: #334155; }
+    .desc-area pre { 
+        background: #fdfdfd; 
+        padding: 1.2rem; 
+        border-radius: 12px; 
+        border: 1px solid var(--border); 
+        margin-top: 1rem;
+        overflow-x: auto;
+    }
+
+    .ai-pane { background-color: #f8fafc !important; display: flex; flex-direction: column; }
+    #chat-flow { flex: 1 1 0%; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+
+    .chat-bubble {
+        background: var(--ai-chat-bg);
+        border-radius: 16px;
+        padding: 12px 16px;
+        max-width: 90%;
+        font-size: 0.9rem;
+        word-wrap: break-word;
+    }
+
+    #loading-screen {
+        position: fixed; inset: 0; background: #ffffff;
+        display: flex; justify-content: center; align-items: center; z-index: 9999;
+    }
+
+    .conf-option { border-width: 2px !important; transition: all 0.2s ease; }
+</style>
+</head>
+<body>
+
+    <div id="loading-screen">
+        <div class="spinner-border text-primary" role="status"></div>
+    </div>
+
+<nav class="top-nav d-flex align-items-center justify-content-between px-4">
+    <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0">
+        <button onclick="history.back()" class="btn btn-light rounded-circle shadow-none border-0 p-2">
+            <i class="bi bi-arrow-left fs-5"></i>
+        </button>
+        <h5 id="q-title" class="mb-0 fw-bold text-dark text-truncate">Loading...</h5>
+        <span id="q-diff" class="badge bg-opacity-10 rounded-pill px-2 px-md-3 py-2 text-uppercase d-none d-md-inline-block" style="font-size: 0.7rem;">--</span>
+    </div>
+    
+    <div class="d-flex align-items-center gap-2 gap-md-3">
+        <button id="solve-btn" class="btn btn-success fw-bold rounded-pill px-3 px-md-4 py-2 border-0 shadow-sm">
+            <i class="bi bi-check2-circle"></i> <span class="d-none d-sm-inline">Mark Solved</span>
+        </button>
+        <!-- <img src="{{ session['profile_pic'] }}" class="rounded-circle border border-2 border-light shadow-sm d-none d-sm-block" style="width: 38px; height: 38px; object-fit: cover;"> -->
+    </div>
+</nav>
+
+    <div class="container-fluid p-0 main-wrapper">
+        <div class="row g-0 h-100">
+            
+            <div class="col-lg-7 pane border-end">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h6 class="text-muted text-uppercase small fw-bold tracking-wider mb-0">Problem Statement</h6>
+                    <a id="leetcode-link" href="#" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        View on LeetCode <i class="bi bi-box-arrow-up-right ms-1"></i>
+                    </a>
+                </div>
+                <div id="q-desc" class="desc-area">
+                    </div>
+            </div>
+
+            <div class="col-lg-5 d-flex flex-column ai-pane p-0 position-relative">
+                <div class="px-4 py-3 border-bottom bg-white d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi bi-robot text-primary me-2"></i>
+                        <span class="fw-bold small text-dark">AI TUTOR</span>
+                    </div>
+                    <!-- <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill">Gemini Pro</span> -->
+                </div>
+                
+                <div id="chat-flow" class="flex-grow-1 overflow-y-auto px-4 py-4 d-flex flex-column gap-3">
+                    <div class="chat-bubble">
+                        👋 Hi! I'm your DSA tutor. How can I help you with this problem?
+                    </div>
+                </div>
+
+                <div class="p-4 border-top bg-white">
+                    <div class="position-relative">
+                        <textarea id="ai-input" class="form-control bg-light border-0 rounded-4 shadow-none py-3 pe-5" 
+                                  rows="2" placeholder="Ask for a hint or explain logic..."></textarea>
+                        <button id="send-btn" class="btn btn-primary rounded-circle position-absolute bottom-0 end-0 m-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </div>
+                    <p class="text-center text-muted mt-2 mb-0" style="font-size: 0.75rem;">
+                        <i class="bi bi-info-circle"></i> AI can make mistakes. Verify critical logic.
+                    </p>
+                </div>
+
+                <div class="ai-lock-overlay position-absolute top-0 start-0 w-100 h-100 bg-white bg-opacity-75 align-items-center justify-content-center d-none" style="z-index: 50; backdrop-filter: blur(5px);">
+                    <div class="bg-white p-5 rounded-4 shadow-sm text-center border" style="max-width: 85%;">
+                        <i class="bi bi-lock-fill text-muted mb-3 d-block" style="font-size: 2.5rem;"></i>
+                        <h5 class="fw-bold text-dark mb-2">AI Coach Locked</h5>
+                        <p class="text-muted small mb-4">Please configure your AI provider and API key to unlock the intelligent tutor for this problem.</p>
+                        <button class="btn btn-dark w-100 rounded-pill fw-medium" onclick="openAIEditModal()">
+                            <i class="bi bi-key-fill me-2"></i>Configure Engine
+                        </button>
+                    </div>
+                </div>
+                
+            </div>
+
+        </div>
+    </div>
+   <div class="modal fade" id="solveModal" 
+     data-bs-backdrop="static" 
+     data-bs-keyboard="false" 
+     tabindex="-1" 
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-white text-dark border-0 shadow-lg">
+      <div class="modal-body p-4">
+        
+        <div class="text-center mb-4">
+            <h4 class="fw-bold">Session Complete ⏱️</h4>
+            <p class="text-muted small">Submit your stats to unlock the next step.</p>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label small text-primary fw-bold text-uppercase">Time Spent (Minutes)</label>
+            <div class="input-group">
+                <input type="number" id="modal-time-input" 
+                       class="form-control bg-light border text-dark fw-bold" 
+                       value="15" min="1">
+                <span class="input-group-text bg-light border text-muted">min</span>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label small text-primary fw-bold text-uppercase">Difficulty Rating</label>
+            <div class="d-flex flex-column gap-2 mt-2">
+                <div class="d-flex justify-content-between gap-2">
+                    <button type="button" class="btn btn-outline-danger w-100 conf-option" data-val="0">Very Hard</button>
+                    <button type="button" class="btn btn-outline-warning w-100 conf-option" data-val="3">Hard</button>
+                </div>
+                <div class="d-flex justify-content-between gap-2">
+                    <button type="button" class="btn btn-outline-primary w-100 conf-option" data-val="4">Medium</button>
+                    <button type="button" class="btn btn-outline-success w-100 conf-option" data-val="5">Easy</button>
+                </div>
+            </div>
+            <input type="hidden" id="modal-confidence-value" value="">
+        </div>
+
+        <p class="text-center text-muted mb-4" style="font-size: 0.75rem;">
+            <strong>Note:</strong> Be honest. Accurate data is required for your personalized learning curve.
+        </p>
+
+        <button id="modal-submit-btn" class="btn btn-dark w-100 py-3 fw-bold disabled">
+            LOG SESSION & UNLOCK
+        </button>
+
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script src="{{ url_for('static', filename='workspace.js') }}"></script>
+    {% include 'ai_modal.html' %}
+    {% include 'ai_error.html' %}
+    <script src="{{ url_for('static', filename='ai_core.js') }}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</body>
+</html>
+
+</html>

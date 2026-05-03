@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightsDSA - Mastery Path</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <style>
+        :root {
+            --primary-color: #dc3545; /* The Red color */
+            --bg-gray: #f8f9fa;
+            --card-bg: #ffffff;
+            --text-muted: #6c757d;
+        }
+
+        body {
+            background-color: #fcfcfc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        /* --- THE NODE CARD --- */
+        .node-card {
+            background: white;
+            border-radius: 24px;
+            padding: 25px 15px;
+            text-align: center;
+            border: 2px solid #eaecf0;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            height: 100%;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .node-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+            border-color: var(--primary-color);
+        }
+
+        /* --- THE NUMBER CIRCLE --- */
+        .node-number {
+            width: 50px;
+            height: 50px;
+            background: #f0f2f5;
+            color: var(--text-muted);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin: 0 auto 15px auto;
+            transition: all 0.3s ease;
+        }
+
+        .node-title {
+            font-weight: 700;
+            color: #344054;
+            font-size: 1rem;
+            line-height: 1.4;
+            margin-bottom: 0;
+        }
+
+        /* --- COMPLETED STATE (Red) --- */
+        .node-card.done {
+            border-color: var(--primary-color);
+            background: #fff5f5;
+        }
+
+        .node-card.done .node-number {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 10px rgba(220, 53, 69, 0.3);
+        }
+
+        .node-card.done .node-title {
+            color: var(--primary-color);
+        }
+
+        .roadmap-row {
+            margin-bottom: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark bg-dark mb-5 shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="bi bi-cpu me-2"></i>InsightsDSA
+            </a>
+            <span class="text-white-50 small">Mastery Roadmap</span>
+        </div>
+    </nav>
+
+    <div class="container" style="max-width: 900px;">
+        <a href="/dashboard" class="text-decoration-none text-muted small mb-2 d-block">
+            <i class="bi bi-chevron-left"></i> Back to Dashboard
+        </a>
+        
+        <div class="text-center mb-5">
+            <h1 class="fw-bold display-6">Your Journey</h1>
+            <p class="text-muted">6 Months. 12 Steps. Zero Excuses.</p>
+        </div>
+
+        <div id="roadmap-container">
+            <div class="text-center py-5">
+                <div class="spinner-border text-danger" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/api/roadmap-data')
+                .then(response => response.json())
+                .then(data => renderRoadmap(data))
+                .catch(error => console.error('Error fetching roadmap:', error));
+        });
+
+        function renderRoadmap(concepts) {
+            const container = document.getElementById('roadmap-container');
+            container.innerHTML = ''; // Clear loading spinner
+
+            // Helper to chunk array into groups of 4
+            const chunkSize = 4;
+            for (let i = 0; i < concepts.length; i += chunkSize) {
+                const chunk = concepts.slice(i, i + chunkSize);
+                const rowIndex = i / chunkSize;
+                
+                // Create Row Div
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'row roadmap-row g-4 justify-content-center';
+                
+                // Zig-Zag Logic: If row index is ODD (1, 3, 5...), reverse it
+                if (rowIndex % 2 !== 0) {
+                    rowDiv.classList.add('flex-row-reverse');
+                }
+
+                // Create Columns for this row
+                chunk.forEach((concept, index) => {
+                    const colDiv = document.createElement('div');
+                    colDiv.className = 'col-6 col-md-3';
+
+                    // Determine Status
+                    const isDone = concept.solved_count > 0;
+                    const statusClass = isDone ? 'done' : '';
+                    const solvedText = isDone ? 
+                        `<small class="d-block mt-2 text-danger fw-bold" style="font-size: 0.75rem;">${concept.solved_count} Solved</small>` : '';
+
+                    // Build Card HTML
+                    // Note: Global Number = i + index + 1
+                    const stepNumber = i + index + 1;
+
+                    colDiv.innerHTML = `
+                        <div class="node-card ${statusClass}">
+                            <div class="node-number">${stepNumber}</div>
+                            <h5 class="node-title">${concept.title}</h5>
+                            ${solvedText}
+                        </div>
+                    `;
+                    
+                    rowDiv.appendChild(colDiv);
+                });
+
+                container.appendChild(rowDiv);
+            }
+        }
+    </script>
+</body>
+</html>

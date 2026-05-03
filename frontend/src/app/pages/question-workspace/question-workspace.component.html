@@ -1,0 +1,131 @@
+@if (loading) {
+  <div class="p-5 text-center text-muted">Loading problem…</div>
+}
+
+@if (loadError) {
+  <div class="container py-5">
+    <div class="alert alert-danger">{{ loadError }}</div>
+    <a routerLink="/dashboard" class="btn btn-dark">Dashboard</a>
+  </div>
+}
+
+@if (detail && !loading) {
+  <div class="workspace">
+    <nav class="ws-top d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 border-bottom bg-white">
+      <div class="d-flex align-items-center gap-2 min-w-0">
+        <button type="button" class="btn btn-light btn-sm rounded-circle" (click)="goBack()" aria-label="Back">
+          <i class="fa-solid fa-arrow-left"></i>
+        </button>
+        <h1 class="h6 fw-bold mb-0 text-truncate">{{ detail.title }}</h1>
+        <span class="badge rounded-pill bg-secondary-subtle text-secondary-emphasis text-uppercase small">{{
+          detail.difficulty
+        }}</span>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        @if (detail.is_solved) {
+          <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" (click)="resetSolve()">
+            Reset progress
+          </button>
+        } @else {
+          <button type="button" class="btn btn-success btn-sm rounded-pill" (click)="openSolveModal()">Mark solved</button>
+        }
+        <a class="btn btn-outline-primary btn-sm rounded-pill" [href]="detail.link" target="_blank" rel="noopener noreferrer">
+          LeetCode <i class="fa-solid fa-arrow-up-right-from-square ms-1" style="font-size: 0.7rem"></i>
+        </a>
+      </div>
+    </nav>
+
+    <div class="row g-0 ws-body">
+      <div class="col-lg-7 border-end bg-white p-3 p-lg-4 ws-pane">
+        <h2 class="small text-uppercase text-muted fw-bold mb-3">Problem statement</h2>
+        @for (part of descParts; track $index) {
+          @if ($index === 0) {
+            <div class="desc-main mb-0" style="white-space: pre-wrap">{{ part }}</div>
+          } @else {
+            <div class="mt-4 p-3 bg-light border-start border-primary border-4 rounded example-block" style="white-space: pre-wrap">
+              {{ part }}
+            </div>
+          }
+        }
+      </div>
+      <div class="col-lg-5 d-flex flex-column ws-chat bg-light">
+        <div class="px-3 py-2 border-bottom bg-white small fw-semibold">
+          <i class="fa-solid fa-robot text-primary me-1"></i> AI tutor
+        </div>
+        <div class="flex-grow-1 overflow-auto p-3 d-flex flex-column gap-2">
+          @if (historyBanner) {
+            <div class="alert alert-secondary text-center small mb-2">
+              <p class="mb-2 fw-semibold">Past tutoring session found.</p>
+              <button type="button" class="btn btn-success btn-sm me-1" (click)="resumeHistory()">Resume</button>
+              <button type="button" class="btn btn-outline-danger btn-sm" (click)="startFreshChat()">Start fresh</button>
+            </div>
+          }
+          @for (m of chatMessages; track $index) {
+            <div
+              class="p-3 rounded-4 shadow-sm"
+              [class.bg-white]="m.role === 'ai'"
+              [class.align-self-end]="m.role === 'user'"
+              [class.w-75]="m.role === 'user'"
+              [class.border]="m.role === 'ai'"
+              style="white-space: pre-wrap"
+            >
+              {{ m.text }}
+            </div>
+          }
+        </div>
+        @if (chatErr) {
+          <p class="text-danger small px-3 mb-1">{{ chatErr }}</p>
+        }
+        <div class="p-3 border-top bg-white">
+          <div class="d-flex gap-2">
+            <textarea
+              class="form-control"
+              rows="2"
+              placeholder="Ask for a hint…"
+              [(ngModel)]="chatInput"
+              (keydown.enter)="$event.preventDefault(); sendChat()"
+            ></textarea>
+            <button type="button" class="btn btn-primary align-self-end" [disabled]="chatBusy" (click)="sendChat()">
+              <i class="fa-solid fa-paper-plane"></i>
+            </button>
+          </div>
+          <p class="text-center text-muted mt-2 mb-0" style="font-size: 0.75rem">
+            Configure your API key under Profile. AI can be wrong — verify critical logic.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
+@if (showSolveModal) {
+  <div class="modal-backdrop fade show"></div>
+  <div class="modal d-block" tabindex="-1" role="dialog" aria-modal="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title h6">Log solve session</h2>
+          <button type="button" class="btn-close" (click)="closeSolveModal()" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label small fw-semibold">Time spent (minutes)</label>
+          <input class="form-control mb-3" type="number" min="1" [(ngModel)]="solveMinutes" />
+          <p class="small fw-semibold mb-2">How did it feel?</p>
+          <div class="d-flex flex-wrap gap-2 mb-3">
+            <button type="button" class="btn btn-sm btn-outline-danger" [class.active]="solveConfidence === 0" (click)="setConfidence(0)">Very hard</button>
+            <button type="button" class="btn btn-sm btn-outline-warning" [class.active]="solveConfidence === 3" (click)="setConfidence(3)">Hard</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" [class.active]="solveConfidence === 4" (click)="setConfidence(4)">Medium</button>
+            <button type="button" class="btn btn-sm btn-outline-success" [class.active]="solveConfidence === 5" (click)="setConfidence(5)">Easy</button>
+          </div>
+          <button type="button" class="btn btn-dark w-100" [disabled]="solveConfidence === null || solveBusy" (click)="submitSolve()">
+            @if (solveBusy) {
+              Saving…
+            } @else {
+              Save &amp; mark solved
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+}

@@ -3,13 +3,24 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+.pytest_cache/
 
 # Environment variables
 .env
+.env.*
 
 # Virtual environments
 venv/
 env/
+.venv/
 
-# Mac system files
+# Flask / tooling
+instance/
+*.egg-info/
+
+# Logs (runtime)
+logs/*.log
+
+# Mac / Windows clutter
 .DS_Store
+Thumbs.db

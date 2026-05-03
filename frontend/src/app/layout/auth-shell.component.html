@@ -1,0 +1,20 @@
+<header class="app-shell-nav">
+  <div class="container-fluid px-3 px-lg-4 d-flex flex-wrap align-items-center justify-content-between gap-2 py-2">
+    <a class="brand text-decoration-none" routerLink="/dashboard">InsightsDSA</a>
+    <nav class="nav-links d-flex flex-wrap align-items-center gap-1 gap-lg-2">
+      <a routerLink="/dashboard" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Dashboard</a>
+      <a routerLink="/memory" routerLinkActive="active">Memory</a>
+      <a routerLink="/roadmap" routerLinkActive="active">Roadmap</a>
+      <a routerLink="/resource" routerLinkActive="active">Resources</a>
+      <a routerLink="/journey" routerLinkActive="active">Journey</a>
+      <a routerLink="/insights" routerLinkActive="active">Insights</a>
+      <a routerLink="/profile" routerLinkActive="active">Profile</a>
+      <a routerLink="/about" routerLinkActive="active" class="d-none d-md-inline">About</a>
+      <span class="vr d-none d-md-block mx-1 text-white-50"></span>
+      <a class="logout" href="/logout">Log out</a>
+    </nav>
+  </div>
+</header>
+<main class="app-shell-main">
+  <router-outlet />
+</main>
