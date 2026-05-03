@@ -12,14 +12,6 @@
     update_cache: true
     cache_valid_time: 3600
 
-- name: Allow postgres daemon to read Debian/Ubuntu snakeoil TLS key in /etc/ssl/private
-  ansible.builtin.user:
-    name: postgres
-    groups: ssl-cert
-    append: true
-  when: ansible_facts['os_family'] == 'Debian'
-  register: postgres_ssl_cert_group
-
 - name: Locate main cluster postgresql.conf (Debian/Ubuntu layout)
   ansible.builtin.shell:
     cmd: |
@@ -45,6 +37,17 @@
     state: absent
   register: postgres_legacy_snippet_removed
 
+- name: Set PostgreSQL TLS off (no snakeoil cert / ssl-cert dependency)
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_discover_conf.stdout | trim }}"
+    regexp: '^#?\s*ssl\s*='
+    line: >-
+      {{
+        ('ssl = on') if postgres_enable_ssl | bool else ('ssl = off')
+      }}
+    backup: true
+  register: postgres_ssl_line
+
 - name: Set PostgreSQL listen TCP port in main postgresql.conf
   ansible.builtin.lineinfile:
     path: "{{ postgres_discover_conf.stdout | trim }}"
@@ -53,16 +56,14 @@
     backup: true
   register: postgres_port_mainline
 
-- name: Restart PostgreSQL when port, snippets, or ssl-cert membership changed
+- name: Restart PostgreSQL when listen port or SSL setting changed
   ansible.builtin.service:
     name: postgresql
     state: restarted
   when: >-
-    postgres_legacy_snippet_removed is changed or postgres_port_mainline is changed or (
-      postgres_ssl_cert_group is defined and
-      not (postgres_ssl_cert_group.skipped | default(false)) and
-      postgres_ssl_cert_group is changed
-    )
+    postgres_legacy_snippet_removed is changed
+    or postgres_port_mainline is changed
+    or postgres_ssl_line is changed
 
 - name: Ensure PostgreSQL service is enabled and started
   ansible.builtin.service:

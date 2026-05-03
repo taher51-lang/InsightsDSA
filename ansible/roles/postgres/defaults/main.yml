@@ -7,3 +7,6 @@ postgres_apt_packages:
 
 # TCP port Postgres listens on; keep in sync with inventory insightsdsa_postgres_port.
 postgres_listen_port: "{{ insightsdsa_postgres_port | default(5432) | int }}"
+
+# InsightsDSA playbook defaults to Postgres without TLS (simple local / private-network installs).
+postgres_enable_ssl: false
