@@ -12,6 +12,14 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Allow postgres daemon to read Debian/Ubuntu snakeoil TLS key in /etc/ssl/private
+  ansible.builtin.user:
+    name: postgres
+    groups: ssl-cert
+    append: true
+  when: ansible_facts['os_family'] == 'Debian'
+  register: postgres_ssl_cert_group
+
 - name: Locate main cluster postgresql.conf (Debian/Ubuntu layout)
   ansible.builtin.shell:
     cmd: |
@@ -45,11 +53,16 @@
     backup: true
   register: postgres_port_mainline
 
-- name: Restart PostgreSQL when listen port config changed
+- name: Restart PostgreSQL when port, snippets, or ssl-cert membership changed
   ansible.builtin.service:
     name: postgresql
     state: restarted
-  when: postgres_port_mainline is changed or postgres_legacy_snippet_removed is changed
+  when: >-
+    postgres_legacy_snippet_removed is changed or postgres_port_mainline is changed or (
+      postgres_ssl_cert_group is defined and
+      not (postgres_ssl_cert_group.skipped | default(false)) and
+      postgres_ssl_cert_group is changed
+    )
 
 - name: Ensure PostgreSQL service is enabled and started
   ansible.builtin.service:
