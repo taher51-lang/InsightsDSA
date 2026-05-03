@@ -1,6 +1,9 @@
 ---
 # Distro packages only (/etc/postgresql/*). GitLab Omnibus Postgres is separate (e.g. /var/opt/gitlab/postgresql);
 # this role does not reconfigure GitLab. Listen on postgres_listen_port alongside GitLab on 5432 is normal.
+#
+# Debian/Ubuntu postgresql.conf loads conf.d *before* the main `port =` line, so a conf.d override loses.
+# Setting `port` here in the main cluster file matches the effective listener and what operators expect to see.
 
 - name: Ensure PostgreSQL packages are installed
   ansible.builtin.apt:
@@ -24,26 +27,29 @@
   register: postgres_discover_conf
   changed_when: false
 
-- name: InsightsDSA Postgres listen port (conf.d sorts after main; last port wins)
-  ansible.builtin.copy:
-    dest: >-
+- name: Remove legacy conf.d snippet (previously overridden by main `port`; avoid duplicate directives)
+  ansible.builtin.file:
+    path: >-
       {{
         (postgres_discover_conf.stdout | trim | dirname)
         ~ '/conf.d/zzz-insightsdsa-port.conf'
       }}
-    owner: root
-    group: postgres
-    mode: "0644"
-    content: |
-      # InsightsDSA Ansible: distro Postgres listen port (see inventory insightsdsa_postgres_port).
-      port = {{ postgres_listen_port }}
-  register: postgres_port_snippet
+    state: absent
+  register: postgres_legacy_snippet_removed
 
-- name: Restart PostgreSQL to apply listen port
+- name: Set PostgreSQL listen TCP port in main postgresql.conf
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_discover_conf.stdout | trim }}"
+    regexp: '^#?\s*port\s*='
+    line: "port = {{ postgres_listen_port }}"
+    backup: true
+  register: postgres_port_mainline
+
+- name: Restart PostgreSQL when listen port config changed
   ansible.builtin.service:
     name: postgresql
     state: restarted
-  when: postgres_port_snippet is changed
+  when: postgres_port_mainline is changed or postgres_legacy_snippet_removed is changed
 
 - name: Ensure PostgreSQL service is enabled and started
   ansible.builtin.service:
