@@ -1,7 +1,7 @@
 ---
 # Development targets: HTTPS with a locally trusted or browser-warning self-signed cert.
 #
-# Prerequisites: Ansible controller can SSH to ansible_host as ansible_user (key-based auth).
+# Local dev machine: playbook runs against this host (no SSH hop).
 #
 # Typical usage:
 #   ansible-playbook -i ansible/inventory/dev.yml ansible/site.yml
@@ -9,8 +9,8 @@
 all:
   hosts:
     dev:
-      ansible_host: dev
-      ansible_user: ubuntu
+      ansible_host: localhost
+      ansible_connection: local
       # ansible_python_interpreter: /usr/bin/python3
   vars:
     insightsdsa_tls_mode: selfsigned
