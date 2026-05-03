@@ -1,4 +1,7 @@
 ---
+# Distro packages only (/etc/postgresql/*). GitLab Omnibus Postgres is separate (e.g. /var/opt/gitlab/postgresql);
+# this role does not reconfigure GitLab. Listen on postgres_listen_port alongside GitLab on 5432 is normal.
+
 - name: Ensure PostgreSQL packages are installed
   ansible.builtin.apt:
     name: "{{ postgres_apt_packages }}"
@@ -21,22 +24,39 @@
   register: postgres_discover_conf
   changed_when: false
 
-- name: Configure PostgreSQL listen TCP port (matches InsightsDSA DATABASE_URL)
-  ansible.builtin.lineinfile:
-    path: "{{ postgres_discover_conf.stdout | trim }}"
-    regexp: '^#?\s*port\s*='
-    line: "port = {{ postgres_listen_port }}"
-    backup: true
-  register: postgres_port_conf
+- name: InsightsDSA Postgres listen port (conf.d sorts after main; last port wins)
+  ansible.builtin.copy:
+    dest: >-
+      {{
+        (postgres_discover_conf.stdout | trim | dirname)
+        ~ '/conf.d/zzz-insightsdsa-port.conf'
+      }}
+    owner: root
+    group: postgres
+    mode: "0644"
+    content: |
+      # InsightsDSA Ansible: distro Postgres listen port (see inventory insightsdsa_postgres_port).
+      port = {{ postgres_listen_port }}
+  register: postgres_port_snippet
 
 - name: Restart PostgreSQL to apply listen port
   ansible.builtin.service:
     name: postgresql
     state: restarted
-  when: postgres_port_conf is changed
+  when: postgres_port_snippet is changed
 
 - name: Ensure PostgreSQL service is enabled and started
   ansible.builtin.service:
     name: postgresql
     state: started
     enabled: true
+
+- name: Wait for distro PostgreSQL on configured TCP port
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ postgres_listen_port | int }}"
+    timeout: 45
+    delay: 2
+    msg: >-
+      Distro postgresql is not accepting connections on port {{ postgres_listen_port }}.
+      Check `systemctl status postgresql` and `pg_lsclusters`; GitLab Postgres on 5432 is unrelated.
