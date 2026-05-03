@@ -48,11 +48,10 @@ insightsdsa_redis_port: 6379
 
 # Repo root on the Ansible controller (override in inventory).
 insightsdsa_controller_source_dir: "{{ playbook_dir | dirname }}"
-# Remote-side rsync command (passed to ssh destination). Must run with privileges that can write
-# under insightsdsa-owned app paths created earlier (0755). synchronize runs from the controller, so play
-# become= does not apply to the SSH/rsync receiver; passwordless sudo for this command is required
-# unless ansible connects as root (then override with "rsync" in inventory).
-insightsdsa_remote_rsync_path: "{{ 'rsync' if (ansible_user | default('', true)) == 'root' else 'sudo -n rsync' }}"
+# Ansible SSH login user rsync connects as — must match the account that receives SSH (see synchronize note in tasks/main.yml).
+insightsdsa_deploy_ssh_user: "{{ ansible_user | default(ansible_ssh_user | default('root')) }}"
+# --rsync-path on the target. Bare rsync after chown-tree step is enough for ubuntu + insightsdsa layout.
+insightsdsa_remote_rsync_path: rsync
 # rsync deletes files on target that were removed locally (destructive mirror).
 insightsdsa_sync_delete: false
 # Passed as rsync --exclude (works with synchronize versions that lack exclude=).
