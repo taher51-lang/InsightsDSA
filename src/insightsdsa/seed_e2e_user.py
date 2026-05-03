@@ -37,7 +37,6 @@ def ensure_minimal_curriculum() -> None:
                     title="E2E Sample Question",
                     difficulty="Easy",
                     link=None,
-                    is_solved=False,
                     concept_id=1,
                     description="Sample description for UI tests.",
                 )
@@ -55,7 +54,6 @@ def ensure_local_e2e_user() -> int:
             userpassword=generate_password_hash(E2E_PASSWORD),
             name=E2E_NAME,
             email=E2E_EMAIL,
-            chat_context=[],
         )
         s.add(u)
         s.flush()

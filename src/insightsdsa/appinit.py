@@ -166,12 +166,12 @@ def _row_concept(vals: list[Any]) -> dict[str, Any]:
 def _row_question(vals: list[Any]) -> dict[str, Any]:
     if len(vals) != 7:
         raise ValueError(f"questions row expected 7 fields, got {len(vals)}")
+    # vals[4] historically stored is_solved on questions; persisted state lives on user_progress now.
     return {
         "id": vals[0],
         "title": vals[1],
         "difficulty": vals[2],
         "link": vals[3],
-        "is_solved": vals[4],
         "concept_id": vals[5],
         "description": vals[6],
     }

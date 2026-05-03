@@ -16,10 +16,12 @@ def test_api_v1_health(client):
     assert resp.get_json() == {"status": "ok"}
 
 
-def test_loginpage_redirects_to_spa_login(client):
+def test_loginpage_serves_spa_shell(client):
+    """LEGACY PATH /loginpage is served by the Angular shell (same as other SPA routes)."""
     resp = client.get("/loginpage", follow_redirects=False)
-    assert resp.status_code == 301
-    assert resp.headers.get("Location", "").endswith("/login")
+    assert resp.status_code in (200, 503)
+    if resp.status_code == 200:
+        assert b"<html" in resp.data.lower()
 
 
 def test_spa_login_shell(client):
@@ -52,8 +54,9 @@ def test_dashboard_api_returns_concepts(client, flask_app):
     resp = client.get("/api/v1/dashboard")
     assert resp.status_code == 200
     data = resp.get_json()
+    assert isinstance(data.get("concepts"), list)
     assert any(c.get("title") == "Arrays" for c in data["concepts"])
-    assert "/questions/" in str(data)
+    assert "chart_data" in data and len(data["chart_data"]) == 3
 
 
 def test_api_v1_concept_questions(client, flask_app):
@@ -79,7 +82,6 @@ def test_api_v1_concept_questions(client, flask_app):
                     title="Sample Q",
                     difficulty="Easy",
                     link="https://example.com/p/1",
-                    is_solved=False,
                     concept_id=99,
                     description="Desc",
                 )
