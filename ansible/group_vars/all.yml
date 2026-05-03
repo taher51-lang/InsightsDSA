@@ -35,7 +35,9 @@ insightsdsa_redis_password: ""
 insightsdsa_redis_db: 0
 
 insightsdsa_flask_secret_key: "change-me-in-vault"
-insightsdsa_encryption_key: ""
+# ENCRYPTION_KEY: default Fernet key in ansible/roles/insightsdsa/defaults/main.yml — do not set "" here or
+# .env blanks and uwsgi crashes. Override in inventory/vault per environment (production required).
+
 insightsdsa_session_cookie_secure: true
 insightsdsa_session_cookie_samesite: Lax
 

@@ -31,6 +31,10 @@ insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
 insightsdsa_certbot_admin_email: ""
 
+# Fernet-compatible key for ENCRYPTION_KEY in .env (python cryptography.fernet). Required for uwsgi startup.
+# Insecure Ansible-shipped sample — override with ansible-vault in production inventories.
+insightsdsa_encryption_key: "4mSm15fTGC7tQodX0RsgoJExANHeXx1Hh5gWzvAH29U="
+
 # DATABASE_URL / bundled postgres+redis listeners (inventory overrides GitLab coexistence, etc.).
 insightsdsa_postgres_port: 5432
 insightsdsa_redis_port: 6379

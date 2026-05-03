@@ -13,6 +13,9 @@ all:
       ansible_user: ubuntu
       # ansible_python_interpreter: /usr/bin/python3
   vars:
+    # Set secrets (at least Fernet encryption key) via vault/group_vars — do not use repo default in prod.
+    # insightsdsa_encryption_key: "{{ vault_insightsdsa_encryption_key }}"
+
     insightsdsa_tls_mode: letsencrypt
     insightsdsa_server_name: insightsdsa.app
     # Required for Let's Encrypt ACME account / expiry notices.
