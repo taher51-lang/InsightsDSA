@@ -4,6 +4,7 @@ upstream insightsdsa_uwsgi {
 
 server {
     listen 80;
+    listen [::]:80;
     server_name {{ insightsdsa_server_name }};
 
     access_log {{ insightsdsa_nginx_access_log }} {{ insightsdsa_nginx_access_log_format }};
@@ -25,6 +26,7 @@ server {
 {% if insightsdsa_https_enabled | default(false) | bool %}
 server {
     listen 443 ssl http2;
+    listen [::]:443 ssl http2;
     server_name {{ insightsdsa_server_name }};
 
     access_log {{ insightsdsa_nginx_access_log }} {{ insightsdsa_nginx_access_log_format }};
