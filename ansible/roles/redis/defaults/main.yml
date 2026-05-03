@@ -2,5 +2,8 @@
 redis_apt_packages:
   - redis-server
 
+# TCP port Redis listens on; keep in sync with inventory insightsdsa_redis_port.
+redis_listen_port: "{{ insightsdsa_redis_port | default(6379) | int }}"
+
 # If set, adds requirepass to redis.conf (recommended in production).
 insightsdsa_redis_password: ""

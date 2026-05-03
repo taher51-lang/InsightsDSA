@@ -13,6 +13,12 @@ all:
       ansible_user: ubuntu
       # ansible_python_interpreter: /usr/bin/python3
   vars:
+    # Set secrets (Fernet encryption key, Google OAuth) via vault — do not use repo defaults in prod.
+    # insightsdsa_encryption_key: "{{ vault_insightsdsa_encryption_key }}"
+    # insightsdsa_google_client_id: "{{ vault_google_client_id }}"
+    # insightsdsa_google_client_secret: "{{ vault_google_client_secret }}"
+    # Authorized redirect URI in Google Console: https://<insightsdsa_server_name>/login/callback
+
     insightsdsa_tls_mode: letsencrypt
     insightsdsa_server_name: insightsdsa.app
     # Required for Let's Encrypt ACME account / expiry notices.

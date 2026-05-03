@@ -91,7 +91,8 @@
     archive: true
     checksum: true
     delete: "{{ insightsdsa_sync_delete | bool }}"
-    exclude: "{{ insightsdsa_sync_excludes }}"
+    # Older ansible.posix has no exclude=; rsync_opts is always supported.
+    rsync_opts: "{{ insightsdsa_sync_excludes | map('regex_replace', '^', '--exclude=') | list }}"
   notify: Restart insightsdsa uwsgi
 
 - name: Create Python virtualenv
@@ -147,6 +148,7 @@
     name: "{{ insightsdsa_db_user }}"
     password: "{{ insightsdsa_db_password }}"
     role_attr_flags: LOGIN
+    login_port: "{{ insightsdsa_postgres_port | int }}"
   when: insightsdsa_manage_postgres | bool
 
 - name: Create PostgreSQL application database
@@ -156,6 +158,7 @@
     owner: "{{ insightsdsa_db_user }}"
     encoding: UTF-8
     template: template0
+    login_port: "{{ insightsdsa_postgres_port | int }}"
   when: insightsdsa_manage_postgres | bool
 
 - name: Run database schema (SQLAlchemy create_all + column guards)

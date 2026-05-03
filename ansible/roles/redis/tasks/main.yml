@@ -1,4 +1,6 @@
 ---
+# Configures apt redis-server (/etc/redis/redis.conf). Another stack (e.g. GitLab) may use its own Redis.
+
 - name: Ensure Redis server is installed
   ansible.builtin.apt:
     name: "{{ redis_apt_packages }}"
@@ -40,8 +42,33 @@
   when: insightsdsa_redis_password | length == 0
   notify: Restart redis
 
+# Stock redis.conf often pulls in conf.d before a mid-file `port`; last `port` wins. Append at EOF.
+- name: InsightsDSA Redis TCP port (append so it overrides earlier port / includes)
+  ansible.builtin.blockinfile:
+    path: /etc/redis/redis.conf
+    marker: "# {mark} ANSIBLE INSIGHTSDSA PORT"
+    block: |
+      port {{ redis_listen_port }}
+    insertafter: EOF
+    create: false
+  notify: Restart redis
+
+- name: Flush handlers so Redis restarts before listener check
+  ansible.builtin.meta: flush_handlers
+
 - name: Ensure Redis service is enabled and started
   ansible.builtin.service:
     name: redis-server
     state: started
     enabled: true
+
+- name: Wait for packaged Redis on configured TCP port
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ redis_listen_port | int }}"
+    timeout: 30
+    delay: 2
+    msg: >-
+      redis-server is not accepting connections on port {{ redis_listen_port }}.
+      Check `systemctl status redis-server` and duplicates in /etc/redis/redis.conf.
+      Port 6379 may be a different Redis instance (e.g. GitLab).

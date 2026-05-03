@@ -1,4 +1,8 @@
 ---
+# Distro packages only (/etc/postgresql/*). GitLab Omnibus Postgres is separate (e.g. /var/opt/gitlab/postgresql);
+# Debian/Ubuntu main postgresql.conf usually loads conf.d earlier, then sets `port =` again later — which would
+# override conf.d. We remove every `port =` line from the main file and set the listener only via conf.d.
+
 - name: Ensure PostgreSQL packages are installed
   ansible.builtin.apt:
     name: "{{ postgres_apt_packages }}"
@@ -6,8 +10,73 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Locate main cluster postgresql.conf (Debian/Ubuntu layout)
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      for f in /etc/postgresql/*/main/postgresql.conf; do
+        if [ -f "$f" ]; then
+          printf '%s\n' "$f"
+          exit 0
+        fi
+      done
+      exit 1
+    executable: /bin/bash
+  register: postgres_discover_conf
+  changed_when: false
+
+- name: Remove listen port directives from main postgresql.conf (port overridden in conf.d only)
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_discover_conf.stdout | trim }}"
+    regexp: '^#?\s*port\s*='
+    state: absent
+    backup: true
+  register: postgres_main_port_stripped
+
+- name: Set PostgreSQL TLS off (no snakeoil cert / ssl-cert dependency)
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_discover_conf.stdout | trim }}"
+    regexp: '^#?\s*ssl\s*='
+    line: >-
+      {{
+        ('ssl = on') if postgres_enable_ssl | bool else ('ssl = off')
+      }}
+    backup: true
+  register: postgres_ssl_line
+
+- name: InsightsDSA listen TCP port override (conf.d)
+  ansible.builtin.copy:
+    dest: >-
+      {{
+        (postgres_discover_conf.stdout | trim | dirname)
+        ~ '/conf.d/zzz-insightsdsa-port.conf'
+      }}
+    owner: root
+    group: postgres
+    mode: "0644"
+    content: |
+      # InsightsDSA Ansible — TCP listen port (see inventory insightsdsa_postgres_port).
+      port = {{ postgres_listen_port }}
+  register: postgres_port_snippet
+
+- name: Restart PostgreSQL when port, conf.d, or SSL setting changed
+  ansible.builtin.service:
+    name: postgresql
+    state: restarted
+  when: postgres_main_port_stripped is changed or postgres_port_snippet is changed or postgres_ssl_line is changed
+
 - name: Ensure PostgreSQL service is enabled and started
   ansible.builtin.service:
     name: postgresql
     state: started
     enabled: true
+
+- name: Wait for distro PostgreSQL on configured TCP port
+  ansible.builtin.wait_for:
+    host: 127.0.0.1
+    port: "{{ postgres_listen_port | int }}"
+    timeout: 45
+    delay: 2
+    msg: >-
+      Distro postgresql is not accepting connections on port {{ postgres_listen_port }}.
+      Check `systemctl status postgresql` and `pg_lsclusters`; GitLab Postgres on 5432 is unrelated.

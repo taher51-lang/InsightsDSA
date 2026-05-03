@@ -6,6 +6,18 @@
 # Typical usage:
 #   ansible-playbook -i ansible/inventory/dev.yml ansible/site.yml
 #
+# ── Hostname: use a Public Suffix List domain (e.g. dev.insightsdsa.app) for Google OAuth.
+# Resolve this name to the dev host (DNS A/AAAA record, or /etc/hosts on your laptop).
+#
+# Google Cloud Console (Web client):
+#   Authorized redirect URIs: https://dev.insightsdsa.app/login/callback
+#   Authorized JavaScript origins: https://dev.insightsdsa.app
+# GOOGLE_REDIRECT_URI is derived from insightsdsa_server_name + TLS in env.j2 unless you
+# set insightsdsa_google_redirect_uri explicitly.
+#
+# After changing server_name, regenerate the self-signed cert (creates= skips if files already exist):
+#   -e insightsdsa_tls_selfsigned_regenerate=true
+#
 all:
   hosts:
     dev:
@@ -14,7 +26,15 @@ all:
       # ansible_python_interpreter: /usr/bin/python3
   vars:
     insightsdsa_tls_mode: selfsigned
-    # Required: must match SAN on the certificate and how users reach the app.
-    insightsdsa_server_name: dev.insightsdsa.local
+
+    insightsdsa_server_name: dev.insightsdsa.app
+
+    # Google OAuth — paste from Cloud Console (vault recommended; never commit secrets).
+    # insightsdsa_google_client_id: "...apps.googleusercontent.com"
+    # insightsdsa_google_client_secret: "..."
+
+    # Apt postgres/redis-server ports (GitLab coexistence).
+    insightsdsa_postgres_port: 5433
+    insightsdsa_redis_port: 6380
     insightsdsa_install_postgres: true
     insightsdsa_install_redis: true

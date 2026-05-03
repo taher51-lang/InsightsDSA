@@ -11,7 +11,7 @@ insightsdsa_python: python3
 # Postgres is external or already provisioned (set DATABASE_* via .env manually).
 insightsdsa_manage_postgres: true
 
-# Application UID/GID — uWSGI + app files; systemd service runs as this user.
+# Application Unix account (uWSGI/systemd/files). Matches role defaults; override in inventory when needed.
 insightsdsa_deploy_user: insightsdsa
 insightsdsa_deploy_group: insightsdsa
 
@@ -26,23 +26,26 @@ insightsdsa_db_name: insightsdsa
 insightsdsa_db_user: insightsdsa
 insightsdsa_db_password: "change-me-in-vault"
 insightsdsa_postgres_host: 127.0.0.1
-insightsdsa_postgres_port: 5432
+# Postgres/Redis TCP ports: defaults in ansible/roles/insightsdsa/defaults/main.yml — do not redefine
+# here or inventory overrides (e.g. dev.yml 5433/6380) lose to playbook group_vars.
+# postgres/redis roles set server listen port when insightsdsa_install_* is true.
 
 insightsdsa_redis_host: 127.0.0.1
-insightsdsa_redis_port: 6379
 insightsdsa_redis_password: ""
 insightsdsa_redis_db: 0
 
 insightsdsa_flask_secret_key: "change-me-in-vault"
-insightsdsa_encryption_key: ""
+# ENCRYPTION_KEY: default Fernet key in ansible/roles/insightsdsa/defaults/main.yml — do not set "" here or
+# .env blanks and uwsgi crashes. Override in inventory/vault per environment (production required).
+
 insightsdsa_session_cookie_secure: true
 insightsdsa_session_cookie_samesite: Lax
 
-insightsdsa_google_client_id: ""
-insightsdsa_google_client_secret: ""
-insightsdsa_google_redirect_uri: ""
+# Google OAuth: set in inventory/vault (not empty strings here — they override dev.yml). See role defaults + env.j2.
 
-insightsdsa_server_name: "_"
+# nginx server_name — default in role defaults; defining here loses to this file over inventory overrides.
+# Set per inventory (e.g. dev.insightsdsa.app, insightsdsa.app).
+
 # TLS mode is set per inventory: dev (selfsigned) vs production (letsencrypt).
 # insightsdsa_tls_mode: none | selfsigned | letsencrypt
 # insightsdsa_certbot_admin_email: required when using letsencrypt

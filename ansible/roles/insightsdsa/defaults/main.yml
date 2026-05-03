@@ -3,28 +3,54 @@
 insightsdsa_nginx_site_name: insightsdsa
 insightsdsa_systemd_unit: insightsdsa-uwsgi
 
-# Create UNIX user/group matching insightsdsa_deploy_user / insightsdsa_deploy_group.
+# InsightsDSA runs as this dedicated Unix account (systemd/uWSGI uid/gid primary group).
+# Lowercase POSIX name matches insightsdsa_deploy_* in inventory/group_vars when set there.
+insightsdsa_deploy_user: insightsdsa
+insightsdsa_deploy_group: insightsdsa
+# Create user/group above when insightsdsa_manage_app_unix_identity is true.
 insightsdsa_manage_app_unix_identity: true
-# Secondary groups for the app user (nginx worker typically runs as www-data).
+# Extra groups for the app user only (process still runs as insightsdsa_deploy_user).
+# nginx workers are www-data; membership + socket group below lets nginx use the uWSGI socket (660).
 insightsdsa_runtime_user_secondary_groups:
   - www-data
-# uWSGI unix socket is group-owned by this GID so nginx can connect (660).
 insightsdsa_uwsgi_socket_group: www-data
 
 # Install nginx/openssl/certbot via apt only when not already present (package_facts).
 insightsdsa_apt_install_missing_nginx_stack: true
 insightsdsa_apt_update_cache_when_installing: false
 
+# nginx server_name blocks (inventory sets dev/prod hostnames).
+insightsdsa_server_name: "_"
+# Dedicated vhost logs (override paths or format in inventory/group_vars).
+insightsdsa_nginx_access_log: /var/log/nginx/insightsdsa-access.log
+insightsdsa_nginx_access_log_format: combined
+insightsdsa_nginx_error_log: /var/log/nginx/insightsdsa-error.log
+
 # TLS: none (HTTP only) | selfsigned (OpenSSL, dev) | letsencrypt (production).
 insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
+# When true, deletes existing self-signed cert+key before generate (e.g. after changing insightsdsa_server_name).
+insightsdsa_tls_selfsigned_regenerate: false
 insightsdsa_certbot_admin_email: ""
+
+# Google OAuth (Web client). Redirect URI must match Google Cloud Console exactly (see env.j2 auto https/http).
+insightsdsa_google_client_id: ""
+insightsdsa_google_client_secret: ""
+insightsdsa_google_redirect_uri: ""
+
+# Fernet-compatible key for ENCRYPTION_KEY in .env (python cryptography.fernet). Required for uwsgi startup.
+# Insecure Ansible-shipped sample — override with ansible-vault in production inventories.
+insightsdsa_encryption_key: "4mSm15fTGC7tQodX0RsgoJExANHeXx1Hh5gWzvAH29U="
+
+# DATABASE_URL / bundled postgres+redis listeners (inventory overrides GitLab coexistence, etc.).
+insightsdsa_postgres_port: 5432
+insightsdsa_redis_port: 6379
 
 # Repo root on the Ansible controller (override in inventory).
 insightsdsa_controller_source_dir: "{{ playbook_dir | dirname }}"
 # rsync deletes files on target that were removed locally (destructive mirror).
 insightsdsa_sync_delete: false
-# Paths under the repo root excluded from rsync (venv and deps rebuilt on target).
+# Passed as rsync --exclude (works with synchronize versions that lack exclude=).
 insightsdsa_sync_excludes:
   - .git
   - .venv

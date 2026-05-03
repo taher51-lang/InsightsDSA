@@ -231,6 +231,11 @@ def load_curriculum_sql(session: Session, sql_text: str) -> tuple[int, int]:
                 c_count += len(concept_batch)
                 concept_batch.clear()
         elif table == "questions":
+            # Questions reference concepts FK: flush pending concepts before any question inserts.
+            if concept_batch:
+                _bulk_upsert_noop(session, Concept, concept_batch)
+                c_count += len(concept_batch)
+                concept_batch.clear()
             question_batch.append(_row_question(vals))
             if len(question_batch) >= batch_size:
                 _bulk_upsert_noop(session, Question, question_batch)
