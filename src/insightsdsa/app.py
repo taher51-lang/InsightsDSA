@@ -46,7 +46,7 @@ import traceback
 from logging.handlers import RotatingFileHandler 
 import json
 from werkzeug.middleware.proxy_fix import ProxyFix
-from cryptography.fernet import Fernet
+from cryptography.fernet import Fernet, InvalidToken
 import redis
 
 from .analyst_bot import InsightCoach
@@ -323,8 +323,25 @@ def loginpage_legacy_redirect():
 #     return pool.connection()
 def encrypt_key(plain_text):
     return cipher_suite.encrypt(plain_text.encode()).decode()
-def decrypt_key(encrypted_text):
-    return cipher_suite.decrypt(encrypted_text.encode()).decode()
+
+
+class StoredApiKeyDecryptError(Exception):
+    """Fernet decrypt failed (wrong ENCRYPTION_KEY, corrupt/truncated blob, or bad encoding)."""
+
+
+def decrypt_key(encrypted_text: str) -> str:
+    if not encrypted_text or not isinstance(encrypted_text, str):
+        raise StoredApiKeyDecryptError("Missing API key ciphertext")
+    try:
+        raw = encrypted_text.encode("utf-8")
+    except (TypeError, UnicodeEncodeError) as exc:
+        raise StoredApiKeyDecryptError("Invalid API key encoding") from exc
+    try:
+        return cipher_suite.decrypt(raw).decode()
+    except InvalidToken as exc:
+        raise StoredApiKeyDecryptError(
+            "Stored API key could not be decrypted"
+        ) from exc
 # Configure Google OAuth
 oauth = OAuth(app)
 google = oauth.register(
@@ -759,11 +776,13 @@ def toggle_solve():
             s.add(log)
             s.flush()
             activity_id = log.id
+            thread_id = data.get("thread_id")
             task_payload = {
                 "activity_id": activity_id,
                 "user_id": user_id,
                 "q_id": q_id,
                 "provider": provider,
+                **({"thread_id": thread_id} if thread_id else {}),
             }
             Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
         s.commit()
@@ -796,16 +815,22 @@ def ask_AI():
         # 3. Trigger LangGraph
         encrypted_key = Redis.hget(f"user:{session['user_id']}", "api_key")
         if not encrypted_key:
-            print(True)
             return jsonify({
-            "error": "API Key Required",
-            "message": "Please go to Settings and add your API key first."
-    }),401
+                "error": "API Key Required",
+                "message": "Please go to Settings and add your API key first.",
+            }), 401
+        try:
+            user_api_key_plain = decrypt_key(encrypted_key)
+        except StoredApiKeyDecryptError:
+            return jsonify({
+                "code": "INVALID_KEY",
+                "error": "Your stored API key could not be read. Re-save it in Settings.",
+            }), 401
         response = _get_chatbot().invoke({
-            'messages': [HumanMessage(content=query)],
-            'question': question_description,
-            'user_api_key': decrypt_key(encrypted_key), 
-            'provider': provider          
+            "messages": [HumanMessage(content=query)],
+            "question": question_description,
+            "user_api_key": user_api_key_plain,
+            "provider": provider,
         }, config=config)
         # 4. Extract the clean text response
         ai_response = response['messages'][-1].content
@@ -928,11 +953,13 @@ def api_review():
         s.add(log)
         s.flush()
         activity_id = log.id
+        thread_id = data.get("thread_id")
         task_payload = {
             "activity_id": activity_id,
             "user_id": user_id,
             "q_id": question_id,
             "provider": provider,
+            **({"thread_id": thread_id} if thread_id else {}),
         }
         Redis.lpush("ai_analysis_queue", json.dumps(task_payload))
         s.commit()
@@ -1257,19 +1284,39 @@ def get_chat_history(question_id):
         print("Chat History Error:", e)
         return jsonify({"error": "Failed to fetch history"}), 500
 
-def fetch_session_transcript(user_id, q_id):
+def fetch_session_transcript(user_id, q_id, thread_id=None):
     """
-    Pulls the full conversation for a specific user and question.
-    Returns a list of HumanMessage and AIMessage objects.
+    Pulls the conversation for a specific user and question.
+
+    If ``thread_id`` is set, only that thread is included. Otherwise the latest
+    thread (by most recent message) is used, matching ``/api/chat_history`` so
+    background analysis never merges unrelated chat threads.
     """
     try:
         with get_session() as s:
+            if thread_id is None:
+                latest_tid = (
+                    select(ChatMessage.thread_id)
+                    .where(
+                        and_(
+                            ChatMessage.user_id == user_id,
+                            ChatMessage.question_id == q_id,
+                        )
+                    )
+                    .order_by(ChatMessage.created_at.desc())
+                    .limit(1)
+                    .scalar_subquery()
+                )
+                thread_filter = ChatMessage.thread_id == latest_tid
+            else:
+                thread_filter = ChatMessage.thread_id == thread_id
             rows = s.execute(
                 select(ChatMessage.role, ChatMessage.content)
                 .where(
                     and_(
                         ChatMessage.user_id == user_id,
                         ChatMessage.question_id == q_id,
+                        thread_filter,
                     )
                 )
                 .order_by(ChatMessage.id.asc())
@@ -1409,7 +1456,13 @@ def get_ai_summary():
                 "diagnostic": "Add an API key in Profile to unlock AI insights.",
                 "predictor": "Configure your provider key, then try again.",
             })
-        decrypted_key = decrypt_key(api_key)
+        try:
+            decrypted_key = decrypt_key(api_key)
+        except StoredApiKeyDecryptError:
+            return jsonify({
+                "diagnostic": "Your saved API key could not be decrypted. Add it again in Profile.",
+                "predictor": "Re-save your provider key in settings, then try again.",
+            })
         # 2. If they haven't solved anything yet, skip the AI call to save tokens
         if not stats:
             return jsonify({

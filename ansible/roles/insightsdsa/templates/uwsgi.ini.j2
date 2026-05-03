@@ -1,0 +1,25 @@
+[uwsgi]
+strict = true
+master = true
+enable-threads = true
+vacuum = true
+single-interpreter = true
+die-on-term = true
+lazy-apps = true
+
+uid = {{ insightsdsa_deploy_user }}
+gid = {{ insightsdsa_deploy_group }}
+
+chdir = {{ insightsdsa_app_path }}
+pythonpath = {{ insightsdsa_app_path }}/src
+module = wsgi:application
+
+socket = {{ insightsdsa_uwsgi_socket }}
+chmod-socket = 660
+chown-socket = {{ insightsdsa_deploy_user }}:{{ insightsdsa_deploy_group }}
+
+processes = {{ insightsdsa_uwsgi_workers }}
+threads = 2
+harakiri = {{ insightsdsa_uwsgi_harakiri }}
+
+logto = {{ insightsdsa_app_path }}/logs/uwsgi.log

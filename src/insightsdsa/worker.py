@@ -3,12 +3,20 @@
 from __future__ import annotations
 
 import json
+import logging
 import traceback
 
 from sqlalchemy import select, update
 
 from .analyst_bot import Analyst
-from .app import Redis as r, decrypt_key, fetch_session_transcript
+from .app import (
+    Redis as r,
+    StoredApiKeyDecryptError,
+    decrypt_key,
+    fetch_session_transcript,
+)
+
+_log = logging.getLogger(__name__)
 from .db import SessionLocal
 from .models import ActivityLog, Question
 
@@ -23,10 +31,19 @@ def run_once() -> None:
     ai_score = None
     clarity = None
     try:
-        transcript = fetch_session_transcript(user_id, q_id)
+        transcript = fetch_session_transcript(
+            user_id, q_id, task.get("thread_id")
+        )
         encrypted_key = r.hget(f"user:{user_id}", "api_key")
         if encrypted_key:
-            api_key = decrypt_key(encrypted_key)
+            try:
+                api_key = decrypt_key(encrypted_key)
+            except StoredApiKeyDecryptError:
+                _log.warning(
+                    "Could not decrypt stored API key for user_id=%s (wrong ENCRYPTION_KEY or corrupt data)",
+                    user_id,
+                )
+                api_key = None
         if transcript and api_key:
             analyst = Analyst(api_key, task["provider"])
             s = SessionLocal()

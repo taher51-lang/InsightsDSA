@@ -1,0 +1,13 @@
+---
+# Full stack: PostgreSQL + Redis (optional toggles) + application + nginx reverse proxy/TLS.
+# Pick TLS mode via inventory, e.g. -i ansible/inventory/dev.yml or .../production.yml
+
+- name: InsightsDSA deploy
+  hosts: all
+  become: true
+  roles:
+    - role: postgres
+      when: insightsdsa_install_postgres | default(true)
+    - role: redis
+      when: insightsdsa_install_redis | default(true)
+    - role: insightsdsa

@@ -1,0 +1,202 @@
+---
+- name: Resolve project source directory for rsync
+  ansible.builtin.set_fact:
+    insightsdsa_effective_project_src: >-
+      {{
+        (insightsdsa_project_src | default('') | trim)
+        if (insightsdsa_project_src | default('') | trim | length > 0)
+        else (playbook_dir | dirname)
+      }}
+
+- name: Install application OS dependencies
+  ansible.builtin.apt:
+    name: >-
+      {{
+        [
+          'git',
+          insightsdsa_python,
+          insightsdsa_python ~ '-venv',
+          insightsdsa_python ~ '-dev',
+          'build-essential',
+        ]
+        + (['python3-psycopg2'] if insightsdsa_manage_postgres | bool else [])
+      }}
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Install Node.js toolchain (frontend production build)
+  ansible.builtin.apt:
+    name:
+      - nodejs
+      - npm
+    state: present
+  when: insightsdsa_install_nodejs | bool
+
+- name: Ensure application directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: "{{ insightsdsa_deploy_group }}"
+    mode: "0775"
+  loop:
+    - "{{ insightsdsa_app_path }}"
+    - "{{ insightsdsa_app_path }}/logs"
+
+- name: Deploy application from Git
+  ansible.builtin.git:
+    repo: "{{ insightsdsa_repo_url }}"
+    dest: "{{ insightsdsa_app_path }}"
+    version: "{{ insightsdsa_repo_version }}"
+    update: true
+    force: true
+  when: insightsdsa_repo_url | length > 0
+  notify: Restart insightsdsa uwsgi
+
+- name: Rsync application from Ansible controller (no Git URL)
+  ansible.posix.synchronize:
+    src: "{{ insightsdsa_effective_project_src | trim('/') }}/"
+    dest: "{{ insightsdsa_app_path }}/"
+    delete: false
+    rsync_opts:
+      - "--exclude=.git"
+      - "--exclude=.venv"
+      - "--exclude=__pycache__"
+      - "--exclude=.pytest_cache"
+      - "--exclude=ansible"
+      - "--exclude=frontend/node_modules"
+      - "--exclude=frontend/dist"
+  delegate_to: localhost
+  become: false
+  when: insightsdsa_repo_url | length == 0
+  notify: Restart insightsdsa uwsgi
+
+- name: Create Python virtualenv
+  ansible.builtin.command:
+    cmd: "{{ insightsdsa_python }} -m venv {{ insightsdsa_app_path }}/.venv"
+    creates: "{{ insightsdsa_app_path }}/.venv/bin/pip"
+
+- name: Upgrade pip in virtualenv
+  ansible.builtin.pip:
+    name:
+      - pip
+      - setuptools
+      - wheel
+    state: latest
+    virtualenv: "{{ insightsdsa_app_path }}/.venv"
+
+- name: Install InsightsDSA (editable) into virtualenv
+  ansible.builtin.pip:
+    name: "."
+    chdir: "{{ insightsdsa_app_path }}"
+    editable: true
+    virtualenv: "{{ insightsdsa_app_path }}/.venv"
+  notify: Restart insightsdsa uwsgi
+
+- name: Install frontend dependencies
+  ansible.builtin.command:
+    cmd: npm ci
+    chdir: "{{ insightsdsa_app_path }}/frontend"
+  when: insightsdsa_install_nodejs | bool
+  register: insightsdsa_npm_ci
+  changed_when: true
+
+- name: Build Angular SPA for production
+  ansible.builtin.command:
+    cmd: npm run build
+    chdir: "{{ insightsdsa_app_path }}/frontend"
+  when: insightsdsa_install_nodejs | bool
+  register: insightsdsa_npm_build
+  changed_when: true
+
+- name: Deploy environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ insightsdsa_app_path }}/.env"
+    owner: "{{ insightsdsa_deploy_user }}"
+    group: "{{ insightsdsa_deploy_group }}"
+    mode: "0640"
+  notify: Restart insightsdsa uwsgi
+
+- name: Create PostgreSQL application role
+  become_user: postgres
+  community.postgresql.postgresql_user:
+    name: "{{ insightsdsa_db_user }}"
+    password: "{{ insightsdsa_db_password }}"
+    role_attr_flags: LOGIN
+  when: insightsdsa_manage_postgres | bool
+
+- name: Create PostgreSQL application database
+  become_user: postgres
+  community.postgresql.postgresql_db:
+    name: "{{ insightsdsa_db_name }}"
+    owner: "{{ insightsdsa_db_user }}"
+    encoding: UTF-8
+    template: template0
+  when: insightsdsa_manage_postgres | bool
+
+- name: Run database schema (SQLAlchemy create_all + column guards)
+  ansible.builtin.shell: |
+    set -a
+    source "{{ insightsdsa_app_path }}/.env"
+    set +a
+    exec "{{ insightsdsa_app_path }}/.venv/bin/python" -m insightsdsa.init_db
+  args:
+    executable: /bin/bash
+    chdir: "{{ insightsdsa_app_path }}"
+  register: insightsdsa_init_db
+  changed_when: true
+
+- name: Bootstrap curriculum (concepts + questions)
+  ansible.builtin.shell: |
+    set -a
+    source "{{ insightsdsa_app_path }}/.env"
+    set +a
+    exec "{{ insightsdsa_app_path }}/.venv/bin/python" -m insightsdsa.appinit
+  args:
+    executable: /bin/bash
+    chdir: "{{ insightsdsa_app_path }}"
+  register: insightsdsa_appinit
+  changed_when: true
+
+- name: Install uWSGI into virtualenv
+  ansible.builtin.pip:
+    name: uwsgi
+    virtualenv: "{{ insightsdsa_app_path }}/.venv"
+
+- name: Deploy uWSGI configuration
+  ansible.builtin.template:
+    src: uwsgi.ini.j2
+    dest: "{{ insightsdsa_app_path }}/uwsgi.ini"
+    owner: "{{ insightsdsa_deploy_user }}"
+    group: "{{ insightsdsa_deploy_group }}"
+    mode: "0644"
+  notify: Restart insightsdsa uwsgi
+
+- name: Fix ownership of application tree
+  ansible.builtin.file:
+    path: "{{ insightsdsa_app_path }}"
+    state: directory
+    owner: "{{ insightsdsa_deploy_user }}"
+    group: "{{ insightsdsa_deploy_group }}"
+    recurse: true
+
+- name: Install systemd unit for uWSGI
+  ansible.builtin.template:
+    src: insightsdsa-uwsgi.service.j2
+    dest: "/etc/systemd/system/{{ insightsdsa_systemd_unit }}.service"
+    mode: "0644"
+  notify:
+    - Reload systemd daemon
+    - Restart insightsdsa uwsgi
+
+- name: Enable and start uWSGI service
+  ansible.builtin.systemd:
+    name: "{{ insightsdsa_systemd_unit }}"
+    enabled: true
+    state: started
+    daemon_reload: true
+
+- name: Configure nginx reverse proxy and TLS
+  ansible.builtin.import_tasks: nginx_tls.yml

@@ -187,6 +187,7 @@ export class QuestionWorkspaceComponent implements OnInit {
         confidence: this.solveConfidence,
         time_spent: Math.round(minutes * 60),
         provider: this.provider(),
+        thread_id: this.threadId,
       })
       .subscribe({
         next: (r) => {
@@ -209,14 +210,16 @@ export class QuestionWorkspaceComponent implements OnInit {
     if (!confirm('Reset will wipe SRS progress for this card. Continue?')) {
       return;
     }
-    this.api.toggleSolve({ question_id: this.qId }).subscribe({
-      next: (r) => {
-        if (r.action === 'reset' && this.detail) {
-          this.detail = { ...this.detail, is_solved: false };
-        }
-      },
-      error: () => {},
-    });
+    this.api
+      .toggleSolve({ question_id: this.qId, thread_id: this.threadId })
+      .subscribe({
+        next: (r) => {
+          if (r.action === 'reset' && this.detail) {
+            this.detail = { ...this.detail, is_solved: false };
+          }
+        },
+        error: () => {},
+      });
   }
 
   goBack(): void {

@@ -216,6 +216,8 @@ export class ApiService {
     confidence?: number | null;
     time_spent?: number | null;
     provider?: string | null;
+    /** Chat thread for AI worker transcript scoping (optional). */
+    thread_id?: string | null;
   }): Observable<{ status?: string; action?: string; error?: string }> {
     return this.http.post('/api/toggle_solve', body);
   }

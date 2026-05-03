@@ -1,0 +1,9 @@
+---
+# Role-specific defaults (see ../group_vars/all.yml for most knobs).
+insightsdsa_nginx_site_name: insightsdsa
+insightsdsa_systemd_unit: insightsdsa-uwsgi
+
+# TLS: none (HTTP only) | selfsigned (OpenSSL, dev) | letsencrypt (production).
+insightsdsa_tls_mode: none
+insightsdsa_tls_selfsigned_days: 825
+insightsdsa_certbot_admin_email: ""

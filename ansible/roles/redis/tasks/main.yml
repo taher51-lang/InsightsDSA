@@ -1,0 +1,47 @@
+---
+- name: Ensure Redis server is installed
+  ansible.builtin.apt:
+    name: "{{ redis_apt_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Bind Redis to localhost only
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^bind\s+'
+    line: "bind 127.0.0.1 -::1"
+    backup: true
+  notify: Restart redis
+
+- name: Set Redis protected mode
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^protected-mode\s+'
+    line: "protected-mode yes"
+    backup: true
+  notify: Restart redis
+
+- name: Configure Redis password (optional)
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^requirepass\s+'
+    line: "requirepass {{ insightsdsa_redis_password }}"
+    backup: true
+  when: insightsdsa_redis_password | length > 0
+  notify: Restart redis
+
+- name: Remove stale requirepass line when password disabled
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^requirepass\s+'
+    state: absent
+    backup: true
+  when: insightsdsa_redis_password | length == 0
+  notify: Restart redis
+
+- name: Ensure Redis service is enabled and started
+  ansible.builtin.service:
+    name: redis-server
+    state: started
+    enabled: true
