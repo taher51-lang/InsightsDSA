@@ -1,35 +1,25 @@
-<div class="container py-4 py-lg-5">
-  <h1 class="h3 fw-bold mb-2">Roadmap</h1>
-  <p class="text-muted mb-4">Solved counts per concept — use it to spot weak lanes.</p>
-
-  @if (loadError) {
-    <div class="alert alert-danger">{{ loadError }}</div>
-  }
-
-  <div class="card shadow-sm border-0 rounded-4">
-    <div class="table-responsive">
-      <table class="table align-middle mb-0">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>Concept</th>
-            <th class="text-end">Solved</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (r of rows; track r.id) {
-            <tr>
-              <td class="text-muted">{{ r.id }}</td>
-              <td class="fw-semibold">{{ r.title }}</td>
-              <td class="text-end">{{ r.solved_count }}</td>
-              <td class="text-end">
-                <a class="btn btn-sm btn-outline-dark" [routerLink]="['/questions', r.id]">Problems</a>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3 class="fw-bold"><i class="bi bi-map me-2"></i>Your Roadmap</h3>
+        <a routerLink="/dashboard" class="btn btn-outline-dark rounded-pill px-3">← Dashboard</a>
     </div>
-  </div>
+    <div class="row g-3">
+        <div *ngFor="let c of concepts; let i = index" class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">{{c.title}}</h6>
+                        <span class="badge bg-dark rounded-pill">Step {{i + 1}}</span>
+                    </div>
+                    <div class="progress mb-2" style="height: 6px;">
+                        <div class="progress-bar bg-success" [style.width]="getProgress(c) + '%'"></div>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">{{c.solved_count}} solved</small>
+                        <a [routerLink]="['/questions', c.id]" class="btn btn-sm btn-outline-dark rounded-pill px-3">Solve →</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>

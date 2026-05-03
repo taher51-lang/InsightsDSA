@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "insightsdsa"
-version = "0.1.0"
-description = "DSA learning insights Flask application"
+version = "0.2.0"
+description = "DSA learning insights – Flask API + Angular SPA"
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0",
@@ -21,6 +21,7 @@ dependencies = [
     "requests>=2.31",
     "werkzeug>=3.0",
     "pydantic>=2.0",
+    "sqlalchemy>=2.0",
     "langchain-core>=0.3",
     "langchain-huggingface>=0.1",
     "langchain-google-genai>=2.0",
@@ -28,21 +29,15 @@ dependencies = [
     "langchain-xai>=0.1",
     "langgraph>=0.2",
     "langgraph-checkpoint-postgres>=2.0",
-    "sqlalchemy>=2.0",
-    "pymysql>=1.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "playwright>=1.49.0",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-insightsdsa = ["templates/**/*", "static/**/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

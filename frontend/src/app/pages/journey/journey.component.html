@@ -1,31 +1,35 @@
-<div class="container py-4 py-lg-5">
-  <h1 class="h3 fw-bold mb-2">Mastery timeline</h1>
-  <p class="text-muted mb-4">Concepts ordered by when you first cleared problems in each track.</p>
-
-  @if (loadError) {
-    <div class="alert alert-danger">{{ loadError }}</div>
-  }
-
-  @if (!loadError && rows.length === 0) {
-    <p class="text-muted">Solve a few problems to populate your journey.</p>
-  }
-
-  <ol class="timeline list-unstyled mb-0">
-    @for (r of rows; track r.title + (r.achieved_at ?? '')) {
-      <li class="timeline-item mb-4 pb-4 border-bottom">
-        <div class="d-flex align-items-start gap-3">
-          <span class="display-6" aria-hidden="true">{{ r.icon }}</span>
-          <div>
-            <h2 class="h5 fw-bold mb-1">{{ r.title }}</h2>
-            <p class="text-muted small mb-1">{{ r.count }} problems mastered</p>
-            @if (r.achieved_at) {
-              <p class="small mb-0 text-secondary">
-                First cleared: {{ r.achieved_at | date : 'mediumDate' }}
-              </p>
-            }
-          </div>
+<div class="container py-4">
+    <header class="navbar-minimal">
+        <div>
+            <h1 class="fw-bold h3 mb-1">Milestones</h1>
+            <p class="text-muted small mb-0">Tracing your algorithmic growth.</p>
         </div>
-      </li>
-    }
-  </ol>
+        <a routerLink="/dashboard" class="btn-back">
+            <i class="bi bi-grid-fill me-2"></i> Dashboard
+        </a>
+    </header>
+
+    <main class="timeline-container mt-4">
+        <div *ngIf="milestones.length === 0" class="text-center py-5 text-muted">
+            Begin your first session to generate a timeline.
+        </div>
+        
+        <div *ngFor="let item of milestones; let i = index" class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="premium-card">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div class="icon-wrapper">
+                        <i class="bi {{ item.icon || 'bi-trophy' }}"></i>
+                    </div>
+                    <span class="date-text" *ngIf="item.achieved_at">{{ item.achieved_at | date:'mediumDate' }}</span>
+                </div>
+                <h5 class="fw-bold mb-1">{{ item.title }}</h5>
+                <p class="text-muted small mb-3">You've successfully integrated {{ item.count }} core patterns from this module into your long-term memory.</p>
+                <div class="d-flex gap-2">
+                    <span class="stat-badge"><i class="bi bi-check2-circle me-1"></i>Mastered</span>
+                    <span class="stat-badge"><i class="bi bi-lightning-charge me-1"></i>{{ item.count }} Solves</span>
+                </div>
+            </div>
+        </div>
+    </main>
 </div>

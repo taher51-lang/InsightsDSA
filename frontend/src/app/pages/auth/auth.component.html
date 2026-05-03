@@ -1,0 +1,88 @@
+<div id="auth-container" [class.right-panel-active]="rightPanelActive">
+
+    <div class="form-container sign-up-container">
+        <form action="#"
+            class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4">
+            <h1 class="fw-bold mb-2">Create Account</h1>
+            <span class="text-muted small mb-3">Join the community of developers</span>
+            <div class="social-container mb-3">
+                <a href="/login/google"
+                    class="btn btn-outline-dark rounded-pill px-3 py-2 d-flex align-items-center shadow-sm"
+                    style="font-size: 0.85rem;">
+                    <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" width="16"
+                        class="me-2">
+                    Sign up with Google
+                </a>
+            </div>
+            <div class="w-100 mb-2 text-start">
+                <input type="text" name="regName" placeholder="First Name (e.g. Alex)" [(ngModel)]="regName" (input)="onNameInput()" class="form-control" />
+                <small *ngIf="nameError" class="text-danger ms-1" style="font-size: 0.75rem;">
+                    Only letters allowed (3+ chars)
+                </small>
+            </div>
+            <div class="w-100 mb-2 text-start">
+                <input type="text" name="regUsername" placeholder="Username (e.g. dev_john)" [(ngModel)]="regUsername" (input)="onUsernameInput()" class="form-control" />
+                <small *ngIf="userError" class="text-danger ms-1" style="font-size: 0.75rem;">
+                    3-15 chars, letters/numbers/_ only
+                </small>
+            </div>
+            <div class="w-100 mb-2 text-start">
+                <input type="email" name="regEmail" placeholder="Email" [(ngModel)]="regEmail" (input)="onEmailInput()" class="form-control" />
+                <small *ngIf="emailError" class="text-danger ms-1" style="font-size: 0.75rem;">
+                    Invalid Email Format
+                </small>
+            </div>
+            <div class="w-100 mb-3 text-start">
+                <input type="password" name="regPassword" placeholder="Password" [(ngModel)]="regPassword" (input)="onPasswordInput()" class="form-control mb-1" />
+                <div class="progress" style="height: 4px;">
+                    <div [class]="passBarClass" role="progressbar" [style.width]="passBarWidth"></div>
+                </div>
+                <small *ngIf="passError" class="text-danger ms-1" style="font-size: 0.75rem;">
+                    password must be 6+ char(alphabet,numbers,special chars)
+                </small>
+            </div>
+            <button type="button" (click)="handleRegistration()" class="mt-2 btn btn-primary rounded-pill px-4 py-2 fw-bold">Sign Up</button>
+            <p class="mobile-toggle d-md-none mt-3 mb-0">
+                Already have an account? <a href="#" (click)="activateSignIn($event)" class="fw-bold text-dark">Sign In</a>
+            </p>
+        </form>
+    </div>
+
+    <div class="form-container sign-in-container">
+        <form action="#"
+            class="d-flex flex-column align-items-center justify-content-center h-100 text-center px-4">
+            <h1 class="fw-bold mb-2">Sign in</h1>
+            <div class="social-container mb-3">
+                <a href="/login/google"
+                    class="btn btn-outline-dark rounded-pill px-3 py-2 d-flex align-items-center shadow-sm"
+                    style="font-size: 0.85rem;">
+                    <img src="https://fonts.gstatic.com/s/i/productlogos/googleg/v6/24px.svg" width="16"
+                        class="me-2">
+                    Continue with Google
+                </a>
+            </div>
+            <span class="text-muted small mb-2">or use your username</span>
+            <input type="text" name="loginUsername" placeholder="Username" [(ngModel)]="loginUsername" class="form-control mb-2" />
+            <input type="password" name="loginPassword" placeholder="Password" [(ngModel)]="loginPassword" class="form-control mb-2" />
+            <button type="button" (click)="handleLogin()" class="btn btn-dark rounded-pill px-4 mt-2">Sign In</button>
+            <p class="mobile-toggle d-md-none mt-3 mb-0">
+                Don't have an account? <a href="#" (click)="activateSignUp($event)" class="fw-bold text-dark">Sign Up</a>
+            </p>
+        </form>
+    </div>
+
+    <div class="overlay-container">
+        <div class="overlay">
+            <div class="overlay-panel overlay-left">
+                <h1>Welcome Back!</h1>
+                <p>To keep connected with us please login with your personal info</p>
+                <button class="ghost" (click)="activateSignIn()">Sign In</button>
+            </div>
+            <div class="overlay-panel overlay-right">
+                <h1>Hello, Friend!</h1>
+                <p>Enter your personal details and start journey with us</p>
+                <button class="ghost" (click)="activateSignUp()">Sign Up</button>
+            </div>
+        </div>
+    </div>
+</div>

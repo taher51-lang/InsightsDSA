@@ -1,0 +1,23 @@
+:root { --bg-body: #f8fafc; --bg-card: #ffffff; --border: #e2e8f0; --text-main: #1e293b; --text-muted: #64748b; --primary: #4f46e5; --ai-chat-bg: #f1f5f9; }
+:host { display: block; height: 100vh; background-color: var(--bg-body); color: var(--text-main); font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+@media (min-width: 992px) { :host { overflow: hidden; } .main-wrapper { height: calc(100vh - 64px); } .pane { height: 100%; overflow-y: auto; } .ai-pane { height: 100%; max-height: 100%; } }
+@media (max-width: 991.98px) { .main-wrapper { height: auto; overflow-y: auto; } .pane { height: auto; padding: 1.5rem !important; border-bottom: 8px solid #f1f5f9; } .ai-pane { height: 70vh; min-height: 500px; } #q-title { font-size: 0.95rem; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .top-nav { padding-left: 10px !important; padding-right: 10px !important; } #solve-btn { padding: 8px 12px !important; font-size: 0.8rem; } }
+.top-nav { height: 64px; background: var(--bg-card); border-bottom: 1px solid var(--border); z-index: 1000; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.pane { padding: 2.5rem; background: var(--bg-card); }
+.desc-area { line-height: 1.8; font-size: 1.05rem; color: #334155; }
+.desc-area pre { background: #fdfdfd; padding: 1.2rem; border-radius: 12px; border: 1px solid var(--border); margin-top: 1rem; overflow-x: auto; }
+.ai-pane { background-color: #f8fafc !important; display: flex; flex-direction: column; }
+#chat-flow { flex: 1 1 0%; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.chat-bubble { background: var(--ai-chat-bg); border-radius: 16px; padding: 12px 16px; max-width: 90%; font-size: 0.9rem; word-wrap: break-word; }
+.conf-option { border-width: 2px !important; transition: all 0.2s ease; }
+.w-85 { max-width: 85%; }
+.ai-lock-overlay { z-index: 10; transition: opacity 0.3s; }
+
+/* Markdown Styles for Chat Messages */
+::ng-deep #chat-flow .rounded-4 p { margin-bottom: 0.5rem; }
+::ng-deep #chat-flow .rounded-4 p:last-child { margin-bottom: 0; }
+::ng-deep #chat-flow .rounded-4 code { background: #e2e8f0; padding: 2px 4px; border-radius: 4px; font-size: 0.9em; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; }
+::ng-deep #chat-flow .rounded-4 pre { background: #1e293b; color: #f8fafc; padding: 1rem; border-radius: 8px; margin: 0.5rem 0; overflow-x: auto; }
+::ng-deep #chat-flow .rounded-4 pre code { background: transparent; color: inherit; padding: 0; font-size: 0.85em; }
+::ng-deep #chat-flow .rounded-4 ul, ::ng-deep #chat-flow .rounded-4 ol { margin-bottom: 0.5rem; padding-left: 1.25rem; }
+::ng-deep #chat-flow .rounded-4 strong { font-weight: 600; color: #1e293b; }

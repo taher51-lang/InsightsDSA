@@ -1,41 +1,36 @@
-<div class="hub container py-4 py-lg-5">
-  <header class="hub-header d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4 pb-3 border-bottom border-dark border-2">
-    <div>
-      <h1 class="h3 fw-bold mb-1">Resource hub</h1>
-      <p class="text-muted mb-0">Curated external links — same set as the legacy hub.</p>
-    </div>
-    <a routerLink="/dashboard" class="btn btn-dark btn-sm">Dashboard</a>
-  </header>
-
-  <div class="controls d-flex flex-wrap gap-3 mb-4">
-    <input
-      class="form-control flex-grow-1"
-      style="max-width: 28rem"
-      type="search"
-      placeholder="Search topics or titles"
-      [(ngModel)]="search"
-    />
-    <div class="btn-group flex-wrap" role="group">
-      <button type="button" class="btn btn-outline-dark btn-sm" [class.active]="typeFilter === 'all'" (click)="setType('all')">All</button>
-      <button type="button" class="btn btn-outline-dark btn-sm" [class.active]="typeFilter === 'video'" (click)="setType('video')">Videos</button>
-      <button type="button" class="btn btn-outline-dark btn-sm" [class.active]="typeFilter === 'notes'" (click)="setType('notes')">Notes</button>
-      <button type="button" class="btn btn-outline-dark btn-sm" [class.active]="typeFilter === 'visual'" (click)="setType('visual')">Visuals</button>
-    </div>
-  </div>
-
-  <div class="row g-3">
-    @for (res of filtered(); track res.title) {
-      <div class="col-md-6 col-xl-4">
-        <div class="res-card h-100 d-flex flex-column border rounded-3 p-3 bg-white shadow-sm">
-          <div>
-            <span class="tag small fw-bold text-uppercase">{{ res.type }}</span>
-            <div class="topic-label small text-muted fw-semibold mt-1">// {{ res.topic }}</div>
-          </div>
-          <h2 class="h6 fw-bold mt-2">{{ res.title }}</h2>
-          <p class="text-muted small flex-grow-1">{{ res.desc }}</p>
-          <a class="btn btn-dark btn-sm mt-2" [href]="res.link" target="_blank" rel="noopener noreferrer">View resource</a>
+<div class="hub-container">
+    <header class="hub-header">
+        <div class="header-text">
+            <h1>Insights DSA Resources</h1>
+            <p>Curated learning resources in monochrome style.</p>
         </div>
-      </div>
-    }
-  </div>
+        <button routerLink="/dashboard" class="btn-back">
+            <svg class="back-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+            </svg>
+            Dashboard
+        </button>
+    </header>
+
+    <div class="controls">
+        <input type="text" id="searchInput" placeholder="SEARCH TOPICS OR RESOURCES..." (keyup)="onSearch($event)">
+        <div class="type-chips">
+            <button class="chip" [class.active]="currentType === 'all'" (click)="filterByType('all')">All</button>
+            <button class="chip" [class.active]="currentType === 'video'" (click)="filterByType('video')">Videos</button>
+            <button class="chip" [class.active]="currentType === 'notes'" (click)="filterByType('notes')">Notes</button>
+            <button class="chip" [class.active]="currentType === 'visual'" (click)="filterByType('visual')">Visuals</button>
+        </div>
+    </div>
+
+    <div id="resourceGrid" class="resource-grid">
+        <div *ngFor="let res of filteredData" class="res-card">
+            <div>
+                <span class="tag">{{res.type}}</span>
+                <div class="topic-label">// {{res.topic}}</div>
+            </div>
+            <h3>{{res.title}}</h3>
+            <p>{{res.desc}}</p>
+            <a [href]="res.link" target="_blank" class="btn-link">View Resource</a>
+        </div>
+    </div>
 </div>

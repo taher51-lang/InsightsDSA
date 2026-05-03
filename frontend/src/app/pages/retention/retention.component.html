@@ -1,0 +1,162 @@
+<nav class="navbar navbar-light bg-white border-bottom mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold" routerLink="/dashboard">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+        <span class="fw-bold">Memory Retention Module</span>
+    </div>
+</nav>
+
+<div class="container" style="max-width: 900px;">
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="bw-card p-3 p-md-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold mb-1">Review Queue</h4>
+                        <p class="text-muted small mb-0">Items ready for spaced repetition review.</p>
+                    </div>
+                    <span class="badge bg-dark rounded-pill px-3 py-2 fs-6">{{ queue.length }} Pending</span>
+                </div>
+
+                <div *ngIf="loading" class="text-center py-4">
+                    <div class="spinner-border text-dark"></div>
+                </div>
+
+                <div *ngIf="!loading && queue.length === 0" class="empty-state text-center py-5">
+                    <i class="bi bi-check-circle fs-1 mb-3 d-block text-success"></i>
+                    <h5 class="fw-bold">All caught up!</h5>
+                    <p class="text-muted">Great job. Your memory retention is optimal.</p>
+                </div>
+
+                <div *ngIf="!loading && queue.length > 0" class="list-group list-group-flush">
+                    <div *ngFor="let item of queue" class="list-group-item px-0 py-3 border-bottom">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+
+                            <div class="flex-grow-1 pe-md-4">
+                                <span class="badge bg-light text-dark border mb-2" style="font-size: 0.7rem;">{{ item.concept_title }}</span>
+                                <h6 class="fw-bold mb-1" style="line-height: 1.4;">{{ item.question_title }}</h6>
+                                <small class="text-danger fw-bold d-block mt-1" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock-history me-1"></i> Due ({{ item.days_interval }}d)
+                                </small>
+                            </div>
+
+                            <div class="d-flex align-items-center gap-2 action-btns">
+                                <button class="bw-btn-dark btn-sm flex-grow-1" (click)="openReviewModal(item)">
+                                    Review
+                                </button>
+                                <button class="bw-btn-outline btn-sm flex-grow-1 d-flex align-items-center justify-content-center" (click)="openSimilarModal(item)">
+                                    <i class="bi bi-magic me-2"></i> Similar
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <div class="bw-card p-3 p-md-4">
+                <h5 class="fw-bold mb-4">Retention Health</h5>
+                <div class="table-responsive">
+                    <table class="table align-middle">
+                        <thead class="text-muted small text-uppercase">
+                            <tr>
+                                <th>Concept</th>
+                                <th class="text-center">Solved</th>
+                                <th class="text-center">Signal Strength</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let stat of stats">
+                                <td class="fw-bold">{{ stat.name }}</td>
+                                <td class="text-center">{{ stat.solved }}</td>
+                                <td class="text-center">
+                                    <i class="bi bi-reception-{{ stat.signal }} fs-4" [ngClass]="'signal-' + stat.signal"></i>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- Review Modal -->
+<div class="modal fade" id="reviewModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4 bg-white text-dark">
+  
+            <div class="modal-body text-center py-4">
+                <p class="text-uppercase fw-bold text-primary small mb-1">Reviewing</p>
+                <h3 class="fw-bold mb-3">{{ currentReviewItem?.question_title || 'Problem Title' }}</h3>
+  
+                <a [href]="currentReviewItem?.question_link || '#'" target="_blank" class="btn btn-outline-dark rounded-pill px-4 mb-4 btn-sm">
+                    <i class="bi bi-box-arrow-up-right me-2"></i>Open in LeetCode
+                </a>
+  
+                <hr class="opacity-10 my-4">
+  
+                <div class="mb-4 px-3 text-start">
+                    <label class="form-label small text-uppercase fw-bold text-muted">Review Time (Minutes)</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control bg-light border text-dark fw-bold" [(ngModel)]="reviewTimeMinutes" min="1">
+                        <span class="input-group-text bg-light border text-muted">min</span>
+                    </div>
+                </div>
+  
+                <p class="small text-uppercase fw-bold text-muted tracking-wide mb-3">Rate your performance</p>
+  
+                <div class="d-flex justify-content-center gap-2 px-2 rating-grid">
+                    <button (click)="submitReview(0)" class="btn btn-outline-danger py-2 w-100">Forgot</button>
+                    <button (click)="submitReview(3)" class="btn btn-outline-warning py-2 text-dark w-100">Hard</button>
+                    <button (click)="submitReview(4)" class="btn btn-outline-primary py-2 w-100">Good</button>
+                    <button (click)="submitReview(5)" class="btn btn-outline-success py-2 w-100">Easy</button>
+                </div>
+  
+                <p class="text-muted mt-4 mb-0" style="font-size: 0.7rem;">
+                    Time input is required to update your insights.
+                </p>
+                <button class="btn btn-link text-muted text-decoration-none mt-2" data-bs-dismiss="modal">Cancel</button>
+            </div>
+  
+        </div>
+    </div>
+  </div>
+
+  <!-- Similar Modal -->
+  <div class="modal fade" id="similarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-white text-dark border-0 shadow-lg rounded-4">
+
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" style="color: #000; letter-spacing: 0.5px;">Recommended Path</h5>
+
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <div *ngIf="loadingSimilar" class="text-center p-3">
+                    <div class="spinner-border spinner-border-sm"></div> Finding similar challenges...
+                </div>
+                <div *ngIf="!loadingSimilar && similarQuestions.length === 0" class="text-center p-3 text-muted">
+                    No similar unsolved problems found!
+                </div>
+                <div class="list-group list-group-flush gap-2">
+                    <a *ngFor="let item of similarQuestions" [routerLink]="['/question', item.id]" class="list-group-item list-group-item-action bg-transparent text-dark fw-bold border-secondary d-flex justify-content-between align-items-center py-3" (click)="closeSimilarModal()">
+                        <span>{{ item.title }}</span>
+                        <span class="btn btn-sm btn-primary rounded-pill">Solve</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

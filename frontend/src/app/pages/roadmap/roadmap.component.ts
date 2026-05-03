@@ -1,29 +1,14 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { ApiService, RoadmapConceptRow } from '../../services/api.service';
+import { HttpClient } from '@angular/common/http';
 
-@Component({
-  selector: 'app-roadmap',
-  standalone: true,
-  imports: [RouterLink],
-  templateUrl: './roadmap.component.html',
-  styleUrl: './roadmap.component.css',
-})
+@Component({ selector: 'app-roadmap', standalone: true, imports: [CommonModule, RouterLink], templateUrl: './roadmap.component.html', styleUrl: './roadmap.component.css' })
 export class RoadmapComponent implements OnInit {
-  private readonly api = inject(ApiService);
-
-  rows: RoadmapConceptRow[] = [];
-  loadError = '';
-
-  ngOnInit(): void {
-    this.api.roadmapData().subscribe({
-      next: (r) => {
-        this.rows = r;
-      },
-      error: (e) => {
-        this.loadError =
-          e?.error?.error ?? e?.message ?? 'Could not load roadmap.';
-      },
-    });
+  concepts: any[] = [];
+  constructor(private http: HttpClient) {}
+  ngOnInit() {
+    this.http.get<any[]>('/api/roadmap-data').subscribe(d => this.concepts = d);
   }
+  getProgress(c: any): number { return c.solved_count > 0 ? Math.min(100, c.solved_count * 10) : 0; }
 }

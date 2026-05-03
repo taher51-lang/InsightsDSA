@@ -1,38 +1,23 @@
 import { Routes } from '@angular/router';
-import { authCanMatch } from './auth.guard';
-import { AuthShellComponent } from './layout/auth-shell.component';
-import { AboutPageComponent } from './pages/about-page/about-page.component';
-import { DashboardComponent } from './pages/dashboard/dashboard.component';
-import { HomeComponent } from './pages/home/home.component';
-import { InsightsComponent } from './pages/insights/insights.component';
-import { JourneyComponent } from './pages/journey/journey.component';
-import { LoginComponent } from './pages/login/login.component';
-import { MemoryComponent } from './pages/memory/memory.component';
-import { ProfileComponent } from './pages/profile/profile.component';
-import { QuestionWorkspaceComponent } from './pages/question-workspace/question-workspace.component';
-import { QuestionsConceptComponent } from './pages/questions-concept/questions-concept.component';
-import { ResourceComponent } from './pages/resource/resource.component';
-import { RoadmapComponent } from './pages/roadmap/roadmap.component';
+import { authGuard } from './core/auth.guard';
+
+import { adminGuard } from './core/admin.guard';
 
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', component: HomeComponent },
-  { path: 'login', component: LoginComponent },
-  { path: 'about', component: AboutPageComponent },
-  {
-    path: '',
-    component: AuthShellComponent,
-    canMatch: [authCanMatch],
-    children: [
-      { path: 'dashboard', component: DashboardComponent },
-      { path: 'memory', component: MemoryComponent },
-      { path: 'roadmap', component: RoadmapComponent },
-      { path: 'resource', component: ResourceComponent },
-      { path: 'profile', component: ProfileComponent },
-      { path: 'journey', component: JourneyComponent },
-      { path: 'insights', component: InsightsComponent },
-      { path: 'questions/:conceptId', component: QuestionsConceptComponent },
-      { path: 'question/:qId', component: QuestionWorkspaceComponent },
-    ],
-  },
+  { path: '', loadComponent: () => import('./pages/landing/landing.component').then(m => m.LandingComponent) },
+  { path: 'login', loadComponent: () => import('./pages/auth/auth.component').then(m => m.AuthComponent) },
+  { path: 'loginpage', redirectTo: 'login' },
+  { path: 'dashboard', canActivate: [authGuard], loadComponent: () => import('./pages/dashboard/dashboard.component').then(m => m.DashboardComponent) },
+  { path: 'questions/:conceptId', canActivate: [authGuard], loadComponent: () => import('./pages/questions/questions.component').then(m => m.QuestionsComponent) },
+  { path: 'question/:qId', canActivate: [authGuard], loadComponent: () => import('./pages/workspace/workspace.component').then(m => m.WorkspaceComponent) },
+  { path: 'memory', canActivate: [authGuard], loadComponent: () => import('./pages/retention/retention.component').then(m => m.RetentionComponent) },
+  { path: 'roadmap', canActivate: [authGuard], loadComponent: () => import('./pages/roadmap/roadmap.component').then(m => m.RoadmapComponent) },
+  { path: 'resource', canActivate: [authGuard], loadComponent: () => import('./pages/resource/resource.component').then(m => m.ResourceComponent) },
+  { path: 'profile', canActivate: [authGuard], loadComponent: () => import('./pages/profile/profile.component').then(m => m.ProfileComponent) },
+  { path: 'insights', canActivate: [authGuard], loadComponent: () => import('./pages/insights/insights.component').then(m => m.InsightsComponent) },
+  { path: 'journey', canActivate: [authGuard], loadComponent: () => import('./pages/journey/journey.component').then(m => m.JourneyComponent) },
+  { path: 'about', loadComponent: () => import('./pages/about/about.component').then(m => m.AboutComponent) },
+  { path: 'admin', canActivate: [adminGuard], loadComponent: () => import('./pages/admin/admin.component').then(m => m.AdminComponent) },
   { path: '**', redirectTo: '' },
 ];
+

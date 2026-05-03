@@ -1,61 +1,44 @@
-"""Server-side dashboard payload for API consumers (SPA)."""
+"""Build the JSON payload that the dashboard API endpoint returns.
+
+This extracts the logic that was previously inline in the Jinja render_template() call.
+"""
 
 from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import and_, case, func, select
+from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session
 
-from .models import Concept, UserProgress
+from .models import Concept, Question, UserProgress
 
 
-def build_dashboard_payload(user_id: int, s) -> dict:
-    """Return the same data the legacy Jinja dashboard used, as JSON-serializable dicts."""
-    concepts: list[dict] = []
-    for row in s.execute(
-        select(Concept.id, Concept.title, Concept.icon).order_by(Concept.id)
-    ).all():
-        cid = int(row[0])
-        concepts.append(
-            {
-                "id": cid,
-                "title": str(row[1] or ""),
-                "icon": str(row[2] or ""),
-                "questions_path": f"/questions/{cid}",
-            }
-        )
+def build_dashboard_payload(user_id: int, s: Session) -> dict:
+    # 1. Fetch Concepts
+    concepts_rows = s.execute(select(Concept).order_by(Concept.id)).scalars().all()
+    concepts = [
+        {"id": c.id, "title": c.title, "icon": c.icon or ""}
+        for c in concepts_rows
+    ]
 
-    _interval = func.coalesce(UserProgress.interval_days, 0)
+    # 2. Retention memory counts (short / medium / long term)
     counts = s.execute(
         select(
-            func.coalesce(
-                func.sum(case((_interval <= 3, 1), else_=0)),
-                0,
-            ).label("short"),
-            func.coalesce(
-                func.sum(
-                    case(
-                        (
-                            and_(_interval > 3, _interval <= 14),
-                            1,
-                        ),
-                        else_=0,
-                    )
-                ),
-                0,
+            func.count().filter(UserProgress.interval_days <= 3).label("short"),
+            func.count().filter(
+                and_(UserProgress.interval_days > 3, UserProgress.interval_days <= 14)
             ).label("medium"),
-            func.coalesce(
-                func.sum(case((_interval > 14, 1), else_=0)),
-                0,
-            ).label("long"),
+            func.count().filter(UserProgress.interval_days > 14).label("long"),
         ).where(UserProgress.user_id == user_id)
-    ).mappings().first()
-    short_term = counts["short"] or 0
-    medium_term = counts["medium"] or 0
-    long_term = counts["long"] or 0
+    ).first()
+
+    short_term = counts.short or 0
+    medium_term = counts.medium or 0
+    long_term = counts.long or 0
     total_solved = short_term + medium_term + long_term
     chart_data = [short_term, medium_term, long_term]
 
+    # 3. Retention logic
     if total_solved == 0:
         retention_pct = 0
         days_label = "Start Now"
@@ -71,15 +54,13 @@ def build_dashboard_payload(user_id: int, s) -> dict:
                     UserProgress.is_solved.is_(True),
                 )
             )
-        ).mappings().first()
+        ).first()
 
-        if rev_stats and rev_stats["avg_ease"] is not None:
-            avg_ease = float(rev_stats["avg_ease"])
-            next_date = rev_stats["next_date"]
-        else:
-            avg_ease = 2.5
-            next_date = None
+        avg_ease = float(rev_stats.avg_ease) if rev_stats and rev_stats.avg_ease else 2.5
+        next_date = rev_stats.next_date if rev_stats else None
+
         retention_pct = int(min(100, (avg_ease / 3.0) * 100))
+
         if next_date:
             delta = (next_date - date.today()).days
             if delta < 0:
@@ -102,5 +83,4 @@ def build_dashboard_payload(user_id: int, s) -> dict:
         "retention_pct": retention_pct,
         "days_label": days_label,
         "days_color": days_color,
-        "memory_path": "/memory",
     }

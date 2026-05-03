@@ -1,0 +1,118 @@
+<div *ngIf="loading" id="loading-screen">
+    <div class="spinner-border text-primary" role="status"></div>
+</div>
+
+<nav class="top-nav d-flex align-items-center justify-content-between px-4">
+    <div class="d-flex align-items-center gap-2 gap-md-3 min-w-0">
+        <button (click)="goBack()" class="btn btn-light rounded-circle shadow-none border-0 p-2">
+            <i class="bi bi-arrow-left fs-5"></i>
+        </button>
+        <h5 class="mb-0 fw-bold text-dark text-truncate" id="q-title">{{qTitle}}</h5>
+        <span class="badge bg-opacity-10 rounded-pill px-2 px-md-3 py-2 text-uppercase d-none d-md-inline-block" style="font-size: 0.7rem;">{{qDiff}}</span>
+    </div>
+    <div class="d-flex align-items-center gap-2 gap-md-3">
+        <button id="solve-btn" (click)="onSolveClick()"
+            [class]="isSolved ? 'btn btn-sm btn-outline-secondary rounded-pill px-4 py-2' : 'btn btn-sm btn-success rounded-pill px-4 py-2'">
+            <i [class]="isSolved ? 'bi bi-arrow-counterclockwise me-1' : 'bi bi-check2-circle me-1'"></i>
+            <span class="d-none d-sm-inline">{{isSolved ? 'Reset Progress' : 'Mark Solved'}}</span>
+        </button>
+    </div>
+</nav>
+
+<div class="container-fluid p-0 main-wrapper">
+    <div class="row g-0 h-100">
+        <div class="col-lg-7 pane border-end">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h6 class="text-muted text-uppercase small fw-bold tracking-wider mb-0">Problem Statement</h6>
+                <a [href]="qLink" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                    View on LeetCode <i class="bi bi-box-arrow-up-right ms-1"></i>
+                </a>
+            </div>
+            <div class="desc-area" [innerHTML]="qDesc" style="font-weight: bold;"></div>
+        </div>
+        <div class="col-lg-5 d-flex flex-column ai-pane p-0 position-relative">
+            <!-- AI Lock Overlay -->
+            <div *ngIf="!aiKeyService.hasKey" 
+                 class="ai-lock-overlay position-absolute w-100 h-100 d-flex flex-column align-items-center justify-content-center bg-white bg-opacity-75 z-2" 
+                 style="backdrop-filter: blur(3px);"
+                 (click)="aiKeyService.openSettings()">
+                <div class="text-center bg-white p-4 rounded-4 shadow-sm border" style="cursor: pointer;">
+                    <i class="bi bi-lock-fill fs-1 text-primary mb-2"></i>
+                    <h5 class="fw-bold text-dark mb-1">AI Tutor Locked</h5>
+                    <p class="text-muted small mb-0">Click here to configure your AI Engine</p>
+                </div>
+            </div>
+
+            <div class="px-4 py-3 border-bottom bg-white d-flex align-items-center justify-content-between">
+                <div><i class="bi bi-robot text-primary me-2"></i><span class="fw-bold small text-dark">AI TUTOR</span></div>
+                <button *ngIf="aiKeyService.hasKey" class="btn btn-sm btn-light rounded-circle" (click)="aiKeyService.openSettings()" title="Settings">
+                    <i class="bi bi-gear"></i>
+                </button>
+            </div>
+            <div id="chat-flow" class="flex-grow-1 overflow-y-auto px-4 py-4 d-flex flex-column gap-3">
+                <div *ngIf="showHistoryBanner" class="alert alert-secondary text-center shadow-sm mb-3" style="font-size: 0.9rem;">
+                    <p class="mb-2 text-dark fw-bold">Past tutoring session found.</p>
+                    <button (click)="resumeChat()" class="btn btn-success btn-sm me-2">Resume Chat</button>
+                    <button (click)="startFresh()" class="btn btn-danger btn-sm">Start Fresh</button>
+                </div>
+                <div *ngFor="let msg of chatMessages"
+                    [class]="'p-3 rounded-4 mb-2 shadow-sm bg-white ' + (msg.role === 'user' ? 'text-dark align-self-end w-75' : 'border border-secondary text-dark w-85')"
+                    [innerHTML]="msg.content"></div>
+            </div>
+            <div class="p-4 border-top bg-white">
+                <div class="position-relative">
+                    <textarea id="ai-input" class="form-control bg-light border-0 rounded-4 shadow-none py-3 pe-5"
+                        rows="2" placeholder="Ask for a hint or explain logic..." (keypress)="onKeyPress($event)"
+                        [disabled]="!aiKeyService.hasKey"></textarea>
+                    <button (click)="sendMessage()" class="btn btn-primary rounded-circle position-absolute bottom-0 end-0 m-2 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;"
+                        [disabled]="!aiKeyService.hasKey">
+                        <i class="bi bi-send-fill"></i>
+                    </button>
+                </div>
+                <p class="text-center text-muted mt-2 mb-0" style="font-size: 0.75rem;">
+                    <i class="bi bi-info-circle"></i> AI can make mistakes. Verify critical logic.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Solve Modal -->
+<div class="modal fade" id="solveModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-white text-dark border-0 shadow-lg">
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <h4 class="fw-bold">Session Complete ⏱️</h4>
+                    <p class="text-muted small">Submit your stats to unlock the next step.</p>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-primary fw-bold text-uppercase">Time Spent (Minutes)</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control bg-light border text-dark fw-bold" [(ngModel)]="timeSpent" min="1">
+                        <span class="input-group-text bg-light border text-muted">min</span>
+                    </div>
+                </div>
+                <div class="mb-4">
+                    <label class="form-label small text-primary fw-bold text-uppercase">Difficulty Rating</label>
+                    <div class="d-flex flex-column gap-2 mt-2">
+                        <div class="d-flex justify-content-between gap-2">
+                            <button type="button" (click)="selectConf(0)" [class]="'btn w-100 conf-option ' + (selectedConf === 0 ? 'btn-danger text-white' : 'btn-outline-danger')">Very Hard</button>
+                            <button type="button" (click)="selectConf(3)" [class]="'btn w-100 conf-option ' + (selectedConf === 3 ? 'btn-warning text-white' : 'btn-outline-warning')">Hard</button>
+                        </div>
+                        <div class="d-flex justify-content-between gap-2">
+                            <button type="button" (click)="selectConf(4)" [class]="'btn w-100 conf-option ' + (selectedConf === 4 ? 'btn-primary text-white' : 'btn-outline-primary')">Medium</button>
+                            <button type="button" (click)="selectConf(5)" [class]="'btn w-100 conf-option ' + (selectedConf === 5 ? 'btn-success text-white' : 'btn-outline-success')">Easy</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center text-muted mb-4" style="font-size: 0.75rem;">
+                    <strong>Note:</strong> Be honest. Accurate data is required for your personalized learning curve.
+                </p>
+                <button (click)="onModalSubmit()" [class]="'btn w-100 py-3 fw-bold ' + (canSubmitModal ? 'btn-dark' : 'btn-light disabled')">
+                    LOG SESSION &amp; UNLOCK
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,1 +1,223 @@
-/* bootstrap */
+/* Sidebar sizing */
+aside {
+    flex-shrink: 0; /* Prevents the sidebar from getting squashed */
+}
+
+@media (min-width: 992px) {
+    aside {
+        width: 110px; /* Precise width for your Desktop sidebar */
+    }
+    .sidebar {
+        position: sticky;
+        top: 1rem;
+        /* Height minus the margins for a 'floating pill' look */
+        height: calc(100vh - 2rem); 
+    }
+}
+
+@media (max-width: 991px) {
+    aside {
+        padding: 10px 15px !important; 
+        height: auto !important;
+    }
+
+    /* Keep the logo and hamburger on one line tightly */
+    .navbar-brand {
+        font-size: 1.5rem !important;
+        margin: 0 !important;
+    }
+    .sidebar.navbar {
+        min-height: 40px !important; /* Minimum slim look */
+        height: auto !important;      /* Allows expansion */
+        transition: all 0.3s ease;    /*Makes the drop-down smooth*/
+    }
+
+    /* Ensure the collapsible area can actually show */
+    .navbar-collapse.show {
+        padding: 20px 0;
+    }
+}
+
+/* Ensure main content takes the rest of the screen */
+main {
+    background-color: #f8f9fa;
+    min-width: 0; /* Prevents content from breaking the flex container */
+}
+
+/* DESKTOP CONCEPT BOX */
+/* DESKTOP CONCEPT BOX */
+.concept-scroll-box {
+    height: calc(100vh - 358px); 
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 8px;
+}
+
+/* Professional thin scrollbar for a native macOS feel */
+.concept-scroll-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.concept-scroll-box::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.concept-scroll-box::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+.concept-scroll-box::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+/* FIXED TYPO: Changed from min-lg-width to min-width */
+@media (min-width: 992px) {
+    .custom-sidebar-width {
+        width: 100px; /* Adjust this number to your liking */
+        flex: 0 0 auto; /* Prevents it from growing to fill space */
+    }
+}
+
+/* Custom class for the hover effect */
+.hover-white {
+    transition: color 0.3s ease; /* Makes the color change smooth */
+    cursor: pointer; /* Shows the little hand icon */
+}
+
+.hover-white:hover {
+    color: white !important; /* Forces the color to white on hover */
+}
+
+
+/* =========================================================
+   SURGICAL MOBILE DEFLATION (Will not touch Desktop)
+   ========================================================= */
+@media (max-width: 991px) {
+    /* 1. Stop the 100vh math on mobile so the page can scroll normally */
+    .d-flex.flex-column.flex-lg-row.min-vh-100 {
+        height: auto !important;
+        min-height: auto !important;
+    }
+
+    /* 2. Un-constrain the concept box so it doesn't glitch on phones */
+    .concept-scroll-box {
+        height: auto; 
+        max-height: 320px; /* Limits the list so the right column isn't pushed too far down */
+    }
+}
+
+/* Specifically for phones (MICRO-APP SIZING) */
+@media (max-width: 768px) {
+    /* --- 1. THE NUCLEAR NAVBAR FIX (ULTRA THIN) --- */
+    /* Strip almost all margin/padding from the aside wrapper */
+    aside.p-2.p-lg-4 {
+        padding: 4px 6px !important; 
+    }
+    
+    .sidebar, .sidebar .container-fluid.h-100 {
+        height: auto !important;
+        min-height: auto !important;
+    }
+
+    /* Pull the inner container extremely tight */
+    .sidebar .container-fluid.p-2 {
+        padding: 4px 8px !important; 
+    }
+    
+    .mt-2 { margin-top: 0 !important; }
+
+    /* Micro Logo and Text */
+    .navbar-brand svg { 
+        width: 18px !important; 
+        height: 18px !important; 
+    }
+    .navbar-brand span { 
+        font-size: 0.95rem !important; 
+    }
+    
+    /* Micro Hamburger Button */
+    .navbar-toggler { 
+        padding: 2px 6px !important; 
+    }
+    .navbar-toggler-icon { 
+        width: 0.9em !important; 
+        height: 0.9em !important; 
+    }
+    /* --------------------------------- */
+
+    /* 2. Shrink the 'Hello' banner further */
+    .col-lg-7 > .p-4 { 
+        padding: 0.85rem !important; 
+    }
+    .col-lg-7 > .p-4 h2 { 
+        font-size: 1.1rem !important; /* Much smaller greeting */
+    }
+    .col-lg-7 > .p-4 p {
+        font-size: 0.75rem !important; 
+        margin-bottom: 0 !important;
+    }
+    .col-lg-7 > .p-4 .fs-1 { 
+        font-size: 1.25rem !important; /* Smaller wave emoji */
+    }
+    
+    /* 3. Deflate the Consistency Pulse & Cards */
+    #pulse-score {
+        font-size: 1.15rem !important; 
+    }
+    .card-body.p-3 {
+        padding: 0.85rem !important; 
+    }
+    
+    /* 4. Tidy up the Concept List Cards */
+    .concept-item {
+        padding: 0.6rem !important;
+    }
+    .concept-item h6 {
+        font-size: 0.8rem !important; /* Tiny native font */
+    }
+    
+    /* 5. Drop global headers to Micro-App sizes */
+    h5 { font-size: 0.95rem !important; }
+    h6 { font-size: 0.85rem !important; }
+    
+    /* 6. Make sub-text extremely tight */
+    small, .small { font-size: 0.65rem !important; }
+
+    /* 7. Reclaim screen width: strip the outer padding from the main wrapper */
+    main.content.p-3 {
+        padding: 0.5rem !important; 
+    }
+}
+/* Add breathing room between Concept Box and Track Journey on mobile */
+@media (max-width: 991px) {
+    .col-lg-7 {
+        margin-bottom: 1.5rem !important;
+    }
+}
+/* Target the chart card specifically */
+.col-lg-5 .card:nth-child(2) {
+    flex: 1 1 auto;
+}
+
+/* Also ensure the flex column fills full height */
+.col-lg-5 .d-flex.flex-column {
+    min-height: calc(100vh - 2rem);
+}
+@media (max-width: 991px) {
+    .sidebar .container-fluid > div:first-child {
+        margin-top: 0 !important;
+    }
+}
+@media (min-width: 992px) {
+    .col-lg-7, .col-lg-5 {
+        height: calc(100vh - 2rem);
+        overflow: hidden;
+    }
+    .col-lg-5 .d-flex.flex-column {
+        height: 100%;
+    }
+    .col-lg-5 .card:nth-child(2) {  /* Retention chart */
+        flex-grow: 1;
+    }
+}

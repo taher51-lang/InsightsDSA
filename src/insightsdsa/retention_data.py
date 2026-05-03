@@ -1,14 +1,16 @@
-"""Retention / memory review payload for SPA."""
+"""Build the JSON payload for the retention / memory page."""
 
 from __future__ import annotations
 
 from sqlalchemy import and_, func, select
+from sqlalchemy.orm import Session
 
 from .models import Concept, Question, UserProgress
 
 
-def build_retention_payload(user_id: int, s) -> dict:
-    review_stmt = (
+def build_retention_payload(user_id: int, s: Session) -> dict:
+    # 1. Review queue: questions due for review today or earlier
+    queue_rows = s.execute(
         select(
             Question.id.label("question_id"),
             Question.title.label("question_title"),
@@ -16,8 +18,8 @@ def build_retention_payload(user_id: int, s) -> dict:
             Concept.title.label("concept_title"),
             UserProgress.interval_days.label("days_interval"),
         )
-        .select_from(Question)
-        .join(UserProgress, Question.id == UserProgress.question_id)
+        .select_from(UserProgress)
+        .join(Question, UserProgress.question_id == Question.id)
         .join(Concept, Question.concept_id == Concept.id)
         .where(
             and_(
@@ -26,10 +28,12 @@ def build_retention_payload(user_id: int, s) -> dict:
             )
         )
         .order_by(UserProgress.next_review.asc())
-    )
-    queue = [dict(r) for r in s.execute(review_stmt).mappings().all()]
+    ).mappings().all()
 
-    stats_stmt = (
+    review_queue = [dict(r) for r in queue_rows]
+
+    # 2. Stats per concept
+    stats_rows = s.execute(
         select(
             Concept.title.label("concept_title"),
             func.count(UserProgress.question_id).label("solved_count"),
@@ -45,10 +49,10 @@ def build_retention_payload(user_id: int, s) -> dict:
             ),
         )
         .group_by(Concept.id, Concept.title)
-    )
-    stats_raw = s.execute(stats_stmt).mappings().all()
+    ).mappings().all()
+
     stats = []
-    for row in stats_raw:
+    for row in stats_rows:
         name = row["concept_title"]
         solved = row["solved_count"]
         ease = float(row["avg_ease"])
@@ -63,4 +67,5 @@ def build_retention_payload(user_id: int, s) -> dict:
         else:
             signal = 1
         stats.append({"name": name, "solved": solved, "signal": signal})
-    return {"queue": queue, "stats": stats}
+
+    return {"queue": review_queue, "stats": stats}

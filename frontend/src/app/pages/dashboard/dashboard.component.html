@@ -1,65 +1,196 @@
-@if (loadError) {
-  <div class="container py-5">
-    <div class="alert alert-danger">{{ loadError }}</div>
-  </div>
-}
-
-@if (data) {
-  <div class="dash-main">
-    <div class="container py-4 py-lg-5">
-      <p class="text-muted small mb-3">
-        Signed in as <strong>{{ data.user_name || 'there' }}</strong>
-      </p>
-      <div class="row g-4 mb-4">
-        <div class="col-md-4">
-          <div class="stat-card h-100">
-            <p class="label text-uppercase small mb-1">Retention</p>
-            <p class="display-6 fw-bold mb-0">{{ data.retention_pct }}%</p>
-            <p class="text-muted small mb-0 mt-2">{{ data.days_label }}</p>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="stat-card h-100">
-            <p class="label text-uppercase small mb-1">Problems solved</p>
-            <p class="display-6 fw-bold mb-0">{{ data.total_solved }}</p>
-            <p class="text-muted small mb-0 mt-2">Across all concepts</p>
-          </div>
-        </div>
-        <div class="col-md-4">
-          <div class="stat-card h-100">
-            <p class="label text-uppercase small mb-1">Next step</p>
-            <p class="fw-semibold mb-2">Memory &amp; reviews</p>
-            <a class="btn btn-dark btn-sm" routerLink="/memory">Open memory</a>
-          </div>
-        </div>
-      </div>
-
-      <div class="d-flex flex-wrap align-items-end justify-content-between gap-2 mb-3">
-        <h2 class="h4 fw-bold mb-0">Concepts</h2>
-        <p class="text-muted small mb-0">Pick a track and start solving.</p>
-      </div>
-
-      <div class="row g-3">
-        @for (c of data.concepts; track c.id) {
-          <div class="col-md-6 col-xl-4">
-            <div class="concept-card h-100 d-flex flex-column">
-              <div class="d-flex align-items-start gap-3">
-                <span class="concept-emoji" aria-hidden="true">{{ c.icon }}</span>
-                <div class="flex-grow-1 min-w-0">
-                  <h3 class="h6 fw-bold mb-1 text-truncate" [title]="c.title">{{ c.title }}</h3>
-                  <p class="text-muted small mb-0">Concept #{{ c.id }}</p>
+<div class="container-fluid p-0">
+    <div class="d-flex flex-column flex-lg-row min-vh-100 ">
+        <aside class="p-2 p-lg-4 custom-sidebar-width">
+            <nav class="sidebar navbar navbar-expand-lg navbar-dark bg-dark rounded-4 shadow-sm h-100">
+                <div class="container-fluid d-flex flex-lg-column p-2 h-100">
+                    <div class="d-flex justify-content-between align-items-center w-100 mb-lg-4 px-1 px-lg-0 mt-2">
+                        <a class="navbar-brand d-flex flex-row flex-lg-column align-items-center justify-content-start justify-content-lg-center gap-2 m-0 p-lg-0 p-2 text-decoration-none w-100 text-center"
+                            href="#">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="currentColor"
+                                class="bi bi-braces text-white flex-shrink-0" viewBox="0 0 16 16">
+                                <path
+                                    d="M2.114 8.063V7.9c1.005-.102 1.497-.615 1.497-1.6V4.503c0-1.094.39-1.538 1.354-1.538h.273V2h-.376C3.25 2 2.49 2.759 2.49 4.352v1.524c0 1.094-.376 1.456-1.49 1.456v1.299c1.114 0 1.49.362 1.49 1.456v1.524c0 1.593.759 2.352 2.372 2.352h.376v-.961h-.273c-.964 0-1.354-.444-1.354-1.538V9.663c0-.984-.492-1.497-1.497-1.6zM13.886 7.9v.163c-1.005.103-1.497.616-1.497 1.6v1.798c0 1.094-.39 1.538-1.354 1.538h-.273v.961h.376c1.613 0 2.372-.759 2.372-2.352v-1.524c0-1.094.376-1.456 1.49-1.456V7.332c-1.114 0-1.49-.362-1.49-1.456V4.352C13.51 2.759 12.75 2 11.138 2h-.376v.961h.273c.964 0 1.354.444 1.354 1.538V6.3c0 .984.492 1.497 1.497 1.6z" />
+                            </svg>
+                            <span class="fw-bold text-white text-truncate w-100 text-start d-lg-none fs-5">InsightsDSA</span>
+                        </a>
+                        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#navMenu">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                    </div>
+                    <div class="collapse navbar-collapse w-100 flex-column flex-grow-1" id="navMenu">
+                        <div class="flex-grow-1 w-100 d-flex flex-column justify-content-center">
+                            <div class="nav-item text-center">
+                                <a routerLink="/roadmap"
+                                    class="nav-link text-white d-flex justify-content-center align-items-center py-3 rounded-3 text-decoration-none hover-text-white mx-2"
+                                    data-bs-toggle="tooltip" data-bs-placement="right" title="Ideal Roadmap">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                        fill="currentColor" viewBox="0 0 16 16" style="min-width: 24px;">
+                                        <path fill-rule="evenodd"
+                                            d="M15.817.113A.5.5 0 0 1 16 .5v14a.5.5 0 0 1-.402.49l-5 1a.502.502 0 0 1-.196 0L5.5 15.01l-4.902.98A.5.5 0 0 1 0 15.5v-14a.5.5 0 0 1 .402-.49l5-1a.5.5 0 0 1 .196 0L10.5.99l4.902-.98a.5.5 0 0 1 .415.103zM10 1.91l-4-.8v12.98l4 .8V1.91zm1 12.98 4-.8V1.11l-4 .8v12.98zm-6-.8V1.11l-4 .8v12.98l4-.8z" />
+                                    </svg>
+                                </a>
+                                <a routerLink="/about"
+                                    class="nav-link text-white d-flex justify-content-center align-items-center py-3 rounded-3 text-decoration-none hover-text-white mx-2"
+                                    data-bs-toggle="tooltip" data-bs-placement="right" title="About Us">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"
+                                        fill="currentColor" viewBox="0 0 16 16" style="min-width: 24px;">
+                                        <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10c-2.29 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z" />
+                                    </svg>
+                                </a>
+                                <a *ngIf="isAdmin" routerLink="/admin"
+                                    class="nav-link text-warning d-flex justify-content-center align-items-center py-3 rounded-3 text-decoration-none hover-text-white mx-2"
+                                    data-bs-toggle="tooltip" data-bs-placement="right" title="Admin Panel">
+                                    <i class="fas fa-user-shield fs-4"></i>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="w-100 mt-auto px-2 pb-2">
+                            <hr class="border-secondary opacity-50 mb-3 mx-1">
+                            <a routerLink="/profile"
+                                class="btn w-100 d-flex justify-content-center align-items-center py-2 rounded-3 shadow-none border-0 mb-2"
+                                style="background-color: rgba(255,255,255,0.05);" data-bs-toggle="tooltip"
+                                data-bs-placement="right" title="Profile">
+                                <img src="https://ui-avatars.com/api/?name=Code+Ninja&background=0D8ABC&color=fff&rounded=true&size=35"
+                                    alt="Profile" class="rounded-circle border border-secondary shadow-sm"
+                                    width="35" height="35">
+                            </a>
+                            <a href="/logout"
+                                class="btn w-100 d-flex justify-content-center align-items-center py-2 rounded-3 shadow-none border-0 text-white logout-hover"
+                                data-bs-toggle="tooltip" data-bs-placement="right" title="Log Out">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor"
+                                    viewBox="0 0 16 16" style="min-width: 24px;">
+                                    <path fill-rule="evenodd"
+                                        d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z" />
+                                    <path fill-rule="evenodd"
+                                        d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3z" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
                 </div>
-              </div>
-              <div class="mt-auto pt-3">
-                <a
-                  class="btn btn-outline-dark w-100 stretched-link"
-                  [routerLink]="['/questions', c.id]"
-                  >Solve problems</a>
-              </div>
+            </nav>
+        </aside>
+        <main class="content flex-grow-1 p-3 p-lg-4 bg-light overflow-auto">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-7">
+                        <div class="p-4 mb-2 rounded-4 shadow-sm d-flex justify-content-between align-items-center"
+                            style="background-color: #e9ecef;">
+                            <div>
+                                <h2 class="fw-bold" style="text-transform: capitalize;">Hello {{userName}}!!</h2>
+                                <p class="text-muted">It's good to see you again. Ready to solve some problems?</p>
+                            </div>
+                            <div class="fs-1">👋</div>
+                        </div>
+                        <div class="card border-light shadow-sm rounded-4 mb-2">
+                            <div class="card-body p-3">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h6 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 1px; font-size: 0.85rem;">Consistency Pulse</h6>
+                                    <i class="bi bi-activity text-primary fs-5"></i>
+                                </div>
+                                <div class="d-flex align-items-end gap-2 mb-2">
+                                    <h2 class="fw-bold mb-0" id="pulse-score" style="font-size: 1.8rem; letter-spacing: -1px;">{{pulseScore}}</h2>
+                                    <span class="text-muted pb-0 fw-medium">/ 100</span>
+                                </div>
+                                <div class="progress mb-2" style="height: 5px; border-radius: 10px; background-color: #f1f5f9;">
+                                    <div [class]="pulseBarClass" role="progressbar" [style.width]="pulseBarWidth" style="transition: width 1s ease-out;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between text-muted" style="font-size: 0.8rem; font-weight: 600;">
+                                    <span><i class="bi bi-calendar-check me-1"></i> {{pulseActiveDays}} Days Active</span>
+                                    <span><i class="bi bi-arrow-repeat me-1"></i> {{pulseReviews}} Reviews</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="concept-section mt-1">
+                            <h5 class="fw-bold mb-3">Concepts</h5>
+                            <div class="concept-scroll-box pe-2">
+                                <div *ngFor="let concept of concepts"
+                                    class="concept-item d-flex align-items-center p-3 mb-2 bg-white rounded-4 shadow-sm">
+                                    <div class="concept-icon me-3">{{concept.icon}}</div>
+                                    <div class="flex-grow-1 d-flex justify-content-between">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">{{concept.title}}</h6>
+                                        </div>
+                                        <a type="button"
+                                            [routerLink]="['/questions', concept.id]"
+                                            class="btn btn-sm btn-outline-secondary d-flex justify-content-center align-items-center rounded-4">
+                                            <i class="text-muted hover-white">Solve Problems</i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="d-flex flex-column gap-3">
+                            <div class="card border-0 rounded-4 shadow-sm" style="background-color: #e9ecef;">
+                                <div class="card-body d-flex justify-content-between align-items-center p-4"
+                                    style="cursor: pointer;" (click)="openRoadmap()">
+                                    <div>
+                                        <h6 class="mb-0 fw-bold">Track your journey</h6>
+                                        <small class="opacity-75">Share it with your friends</small>
+                                    </div>
+                                    <span class="fs-4">→</span>
+                                </div>
+                            </div>
+                            <div class="card border-0 rounded-4 shadow-sm bg-white h-100">
+                                <div class="card-body p-4">
+                                    <h6 class="fw-bold mb-3">Retention Progress</h6>
+                                    <div style="height: 210px;">
+                                        <canvas id="progressChart"></canvas>
+                                    </div>
+                                    <div class="text-center mt-3 small text-muted">
+                                        <span class="me-2"><i class="bi bi-circle-fill text-danger"></i> Short</span>
+                                        <span class="me-2"><i class="bi bi-circle-fill text-warning"></i> Medium</span>
+                                        <span><i class="bi bi-circle-fill text-success"></i> Long Term</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card border-0 rounded-4 shadow-sm bg-white hover-effect"
+                                style="cursor: pointer;" routerLink="/memory">
+                                <div class="card-body p-3">
+                                    <h6 class="fw-bold mb-1">Revision Module</h6>
+                                    <p class="small text-muted mb-2">Keep your memory fresh</p>
+                                    <div class="progress mb-2" style="height: 6px;">
+                                        <div class="progress-bar bg-primary" role="progressbar"
+                                            [style.width]="retentionPct + '%'">
+                                        </div>
+                                    </div>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">{{retentionPct}}% Retained</small>
+                                        <small class="fw-bold" [class]="daysColor">{{daysLabel}}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                                <div class="card border-0 rounded-4 shadow-sm" style="background-color: #e9ecef;">
+                                    <a class="card-body d-flex justify-content-between align-items-center p-3 text-decoration-none text-reset"
+                                        routerLink="/resource" style="cursor: pointer; height: 85px;">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">Resources</h6>
+                                            <small class="opacity-75">Suggested DSA Resources</small>
+                                        </div>
+                                        <span class="fs-4">→</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                                <div class="card border-0 rounded-4 shadow-sm" style="background-color: #e9ecef;">
+                                    <a class="card-body d-flex justify-content-between align-items-center p-3 text-decoration-none text-reset"
+                                        routerLink="/insights" style="cursor: pointer; height: 85px;">
+                                        <div>
+                                            <h6 class="mb-0 fw-bold">LogicLens <span class="fs-6 text-primary">✨</span></h6>
+                                            <small class="opacity-75">AI Skill Matrix & Insights</small>
+                                        </div>
+                                        <span class="fs-4">→</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-        }
-      </div>
+        </main>
     </div>
-  </div>
-}
+</div>
