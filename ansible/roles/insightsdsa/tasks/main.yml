@@ -1,11 +1,33 @@
 ---
-- name: Require Git repository URL (deploy is Git-only, no controller rsync)
+- name: Validate application repo root exists on Ansible controller
+  ansible.builtin.stat:
+    path: "{{ insightsdsa_controller_source_dir }}"
+  delegate_to: localhost
+  register: insightsdsa_controller_src_stat
+
+- name: Require local repository directory on Ansible controller
   ansible.builtin.assert:
     that:
-      - insightsdsa_repo_url | default('', true) | trim | length > 0
+      - insightsdsa_controller_src_stat.stat.exists
+      - insightsdsa_controller_src_stat.stat.isdir
     fail_msg: >-
-      Set insightsdsa_repo_url in inventory (e.g. https://github.com/your-org/InsightsDSA.git).
-      Rsync from the Ansible controller is not supported.
+      Directory {{ insightsdsa_controller_source_dir }} not found on the Ansible controller (or playbook_dir dirname is wrong).
+      Set insightsdsa_controller_source_dir to the InsightsDSA repository root — the folder that contains frontend/ alongside the Python app.
+
+- name: Validate frontend directory exists under repo root on controller
+  ansible.builtin.stat:
+    path: "{{ insightsdsa_controller_source_dir }}/frontend"
+  delegate_to: localhost
+  register: insightsdsa_controller_frontend_stat
+
+- name: Require frontend/ under repository root on controller
+  ansible.builtin.assert:
+    that:
+      - insightsdsa_controller_frontend_stat.stat.exists
+      - insightsdsa_controller_frontend_stat.stat.isdir
+    fail_msg: >-
+      Missing {{ insightsdsa_controller_source_dir }}/frontend on the Ansible controller.
+      Ensure insightsdsa_controller_source_dir points at the full repo checkout, not a subdirectory.
 
 - name: Ensure application UNIX group exists
   ansible.builtin.group:
@@ -31,7 +53,7 @@
     name: >-
       {{
         [
-          'git',
+          'rsync',
           insightsdsa_python,
           insightsdsa_python ~ '-venv',
           insightsdsa_python ~ '-dev',
@@ -62,13 +84,14 @@
     - "{{ insightsdsa_app_path }}"
     - "{{ insightsdsa_app_path }}/logs"
 
-- name: Deploy application from Git
-  ansible.builtin.git:
-    repo: "{{ insightsdsa_repo_url }}"
-    dest: "{{ insightsdsa_app_path }}"
-    version: "{{ insightsdsa_repo_version }}"
-    update: true
-    force: true
+- name: Deploy application tree from Ansible controller (rsync)
+  ansible.posix.synchronize:
+    src: "{{ insightsdsa_controller_source_dir }}/"
+    dest: "{{ insightsdsa_app_path }}/"
+    archive: true
+    checksum: true
+    delete: "{{ insightsdsa_sync_delete | bool }}"
+    exclude: "{{ insightsdsa_sync_excludes }}"
   notify: Restart insightsdsa uwsgi
 
 - name: Create Python virtualenv

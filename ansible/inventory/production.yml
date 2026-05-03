@@ -17,7 +17,5 @@ all:
     insightsdsa_server_name: insightsdsa.app
     # Required for Let's Encrypt ACME account / expiry notices.
     insightsdsa_certbot_admin_email: ops@example.com
-    insightsdsa_repo_url: "https://github.com/taher51-lang/InsightsDSA.git"
-    insightsdsa_repo_version: main
     insightsdsa_install_postgres: true
     insightsdsa_install_redis: true
