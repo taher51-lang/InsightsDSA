@@ -6,6 +6,9 @@ server {
     listen 80;
     server_name {{ insightsdsa_server_name }};
 
+    access_log {{ insightsdsa_nginx_access_log }} {{ insightsdsa_nginx_access_log_format }};
+    error_log {{ insightsdsa_nginx_error_log }};
+
 {% if insightsdsa_https_enabled | default(false) | bool %}
     return 301 https://$host$request_uri;
 {% else %}
@@ -23,6 +26,9 @@ server {
 server {
     listen 443 ssl http2;
     server_name {{ insightsdsa_server_name }};
+
+    access_log {{ insightsdsa_nginx_access_log }} {{ insightsdsa_nginx_access_log_format }};
+    error_log {{ insightsdsa_nginx_error_log }};
 
     ssl_certificate {{ insightsdsa_tls_fullchain_path }};
     ssl_certificate_key {{ insightsdsa_tls_privkey_path }};
