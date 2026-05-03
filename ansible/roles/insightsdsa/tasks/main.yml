@@ -1,12 +1,30 @@
 ---
-- name: Resolve project source directory for rsync
-  ansible.builtin.set_fact:
-    insightsdsa_effective_project_src: >-
-      {{
-        (insightsdsa_project_src | default('') | trim)
-        if (insightsdsa_project_src | default('') | trim | length > 0)
-        else (playbook_dir | dirname)
-      }}
+- name: Require Git repository URL (deploy is Git-only, no controller rsync)
+  ansible.builtin.assert:
+    that:
+      - insightsdsa_repo_url | default('', true) | trim | length > 0
+    fail_msg: >-
+      Set insightsdsa_repo_url in inventory (e.g. https://github.com/your-org/InsightsDSA.git).
+      Rsync from the Ansible controller is not supported.
+
+- name: Ensure application UNIX group exists
+  ansible.builtin.group:
+    name: "{{ insightsdsa_deploy_group }}"
+    system: true
+    state: present
+  when: insightsdsa_manage_app_unix_identity | bool
+
+- name: Ensure application UNIX user exists
+  ansible.builtin.user:
+    name: "{{ insightsdsa_deploy_user }}"
+    group: "{{ insightsdsa_deploy_group }}"
+    groups: "{{ insightsdsa_runtime_user_secondary_groups }}"
+    append: true
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ insightsdsa_app_path }}"
+    create_home: false
+  when: insightsdsa_manage_app_unix_identity | bool
 
 - name: Install application OS dependencies
   ansible.builtin.apt:
@@ -37,9 +55,9 @@
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: root
+    owner: "{{ insightsdsa_deploy_user }}"
     group: "{{ insightsdsa_deploy_group }}"
-    mode: "0775"
+    mode: "0755"
   loop:
     - "{{ insightsdsa_app_path }}"
     - "{{ insightsdsa_app_path }}/logs"
@@ -51,25 +69,6 @@
     version: "{{ insightsdsa_repo_version }}"
     update: true
     force: true
-  when: insightsdsa_repo_url | length > 0
-  notify: Restart insightsdsa uwsgi
-
-- name: Rsync application from Ansible controller (no Git URL)
-  ansible.posix.synchronize:
-    src: "{{ insightsdsa_effective_project_src | trim('/') }}/"
-    dest: "{{ insightsdsa_app_path }}/"
-    delete: false
-    rsync_opts:
-      - "--exclude=.git"
-      - "--exclude=.venv"
-      - "--exclude=__pycache__"
-      - "--exclude=.pytest_cache"
-      - "--exclude=ansible"
-      - "--exclude=frontend/node_modules"
-      - "--exclude=frontend/dist"
-  delegate_to: localhost
-  become: false
-  when: insightsdsa_repo_url | length == 0
   notify: Restart insightsdsa uwsgi
 
 - name: Create Python virtualenv

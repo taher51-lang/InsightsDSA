@@ -11,17 +11,16 @@ insightsdsa_python: python3
 # Postgres is external or already provisioned (set DATABASE_* via .env manually).
 insightsdsa_manage_postgres: true
 
-insightsdsa_deploy_user: www-data
-insightsdsa_deploy_group: www-data
+# Application UID/GID — uWSGI + app files; systemd service runs as this user.
+insightsdsa_deploy_user: insightsdsa
+insightsdsa_deploy_group: insightsdsa
 
 # Git clone / rsync target (repository root: contains `src/`, `wsgi.py`, `frontend/`).
 insightsdsa_app_path: /srv/insightsdsa
 
-insightsdsa_repo_url: ""
+# Clone source for deploy (override branch/tag with insightsdsa_repo_version).
+insightsdsa_repo_url: "https://github.com/taher51-lang/InsightsDSA.git"
 insightsdsa_repo_version: main
-# When `insightsdsa_repo_url` is empty, rsync from the controller. Leave empty to
-# use the repository parent of the `ansible/` directory (see role tasks).
-insightsdsa_project_src: ""
 
 insightsdsa_db_name: insightsdsa
 insightsdsa_db_user: insightsdsa

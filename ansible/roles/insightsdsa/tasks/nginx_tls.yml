@@ -7,22 +7,42 @@
       Set insightsdsa_certbot_admin_email in inventory (required for ACME registration).
   when: insightsdsa_tls_mode == 'letsencrypt'
 
-- name: Install nginx and OpenSSL
-  ansible.builtin.apt:
-    name:
-      - nginx
-      - openssl
-    state: present
-    update_cache: true
-    cache_valid_time: 3600
+- name: Gather package facts for conditional nginx/certbot installs
+  ansible.builtin.package_facts:
+    manager: auto
 
-- name: Install Certbot nginx plugin
+- name: Install nginx apt package (skip if already installed)
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: "{{ insightsdsa_apt_update_cache_when_installing | bool }}"
+    cache_valid_time: 86400
+  when:
+    - insightsdsa_apt_install_missing_nginx_stack | bool
+    - "'nginx' not in ansible_facts.packages"
+
+- name: Install openssl apt package (skip if already installed)
+  ansible.builtin.apt:
+    name: openssl
+    state: present
+    update_cache: "{{ insightsdsa_apt_update_cache_when_installing | bool }}"
+    cache_valid_time: 86400
+  when:
+    - insightsdsa_apt_install_missing_nginx_stack | bool
+    - "'openssl' not in ansible_facts.packages"
+
+- name: Install Certbot nginx plugin (skip packages already installed)
   ansible.builtin.apt:
     name:
       - certbot
       - python3-certbot-nginx
     state: present
-  when: insightsdsa_tls_mode == 'letsencrypt'
+    update_cache: "{{ insightsdsa_apt_update_cache_when_installing | bool }}"
+    cache_valid_time: 86400
+  when:
+    - insightsdsa_tls_mode == 'letsencrypt'
+    - insightsdsa_apt_install_missing_nginx_stack | bool
+    - ('certbot' not in ansible_facts.packages) or ('python3-certbot-nginx' not in ansible_facts.packages)
 
 - name: Check existing Let's Encrypt certificate
   ansible.builtin.stat:

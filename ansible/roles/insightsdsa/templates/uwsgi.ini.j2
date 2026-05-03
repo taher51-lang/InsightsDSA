@@ -16,7 +16,7 @@ module = wsgi:application
 
 socket = {{ insightsdsa_uwsgi_socket }}
 chmod-socket = 660
-chown-socket = {{ insightsdsa_deploy_user }}:{{ insightsdsa_deploy_group }}
+chown-socket = {{ insightsdsa_deploy_user }}:{{ insightsdsa_uwsgi_socket_group }}
 
 processes = {{ insightsdsa_uwsgi_workers }}
 threads = 2
