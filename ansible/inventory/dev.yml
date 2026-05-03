@@ -16,7 +16,5 @@ all:
     insightsdsa_tls_mode: selfsigned
     # Required: must match SAN on the certificate and how users reach the app.
     insightsdsa_server_name: dev.insightsdsa.local
-    insightsdsa_repo_url: "https://github.com/taher51-lang/InsightsDSA.git"
-    insightsdsa_repo_version: main
     insightsdsa_install_postgres: true
     insightsdsa_install_redis: true

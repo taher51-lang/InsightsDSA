@@ -15,12 +15,12 @@ insightsdsa_manage_postgres: true
 insightsdsa_deploy_user: insightsdsa
 insightsdsa_deploy_group: insightsdsa
 
-# Git clone / rsync target (repository root: contains `src/`, `wsgi.py`, `frontend/`).
+# Deploy target on the managed host (repository root: `src/`, `wsgi.py`, `frontend/`).
 insightsdsa_app_path: /srv/insightsdsa
 
-# Clone source for deploy (override branch/tag with insightsdsa_repo_version).
-insightsdsa_repo_url: "https://github.com/taher51-lang/InsightsDSA.git"
-insightsdsa_repo_version: main
+# Application tree is synced from this path on the Ansible controller (repository root).
+# Default: parent of ansible/ — override if you keep playbooks elsewhere.
+# insightsdsa_controller_source_dir: /path/to/InsightsDSA
 
 insightsdsa_db_name: insightsdsa
 insightsdsa_db_user: insightsdsa

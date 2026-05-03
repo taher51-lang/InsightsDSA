@@ -19,3 +19,17 @@ insightsdsa_apt_update_cache_when_installing: false
 insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
 insightsdsa_certbot_admin_email: ""
+
+# Repo root on the Ansible controller (override in inventory).
+insightsdsa_controller_source_dir: "{{ playbook_dir | dirname }}"
+# rsync deletes files on target that were removed locally (destructive mirror).
+insightsdsa_sync_delete: false
+# Paths under the repo root excluded from rsync (venv and deps rebuilt on target).
+insightsdsa_sync_excludes:
+  - .git
+  - .venv
+  - node_modules
+  - __pycache__
+  - .pytest_cache
+  - "*.pyc"
+  - .angular
