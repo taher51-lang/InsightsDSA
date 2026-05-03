@@ -84,6 +84,18 @@
     - "{{ insightsdsa_app_path }}"
     - "{{ insightsdsa_app_path }}/logs"
 
+# synchronize runs rsync over a new SSH connection as ansible_user — not privileged by playbook become.
+# A directory owned by insightsdsa mode 0755 is not writable by ubuntu. Pre-chown avoids relying on sudo
+# rsync (NOPASSWD, root-squash NFS, capability-stripped containers) and keeps utimens off "." where some
+# mounts reject it (handled by times:false).
+- name: Application path recursively owned by SSH user until after rsync completes
+  ansible.builtin.file:
+    path: "{{ insightsdsa_app_path }}"
+    state: directory
+    owner: "{{ insightsdsa_deploy_ssh_user }}"
+    group: "{{ insightsdsa_deploy_group }}"
+    recurse: true
+
 - name: Deploy application tree from Ansible controller (rsync)
   ansible.posix.synchronize:
     src: "{{ insightsdsa_controller_source_dir }}/"
@@ -92,6 +104,7 @@
     checksum: true
     owner: false
     group: false
+    times: false
     delete: "{{ insightsdsa_sync_delete | bool }}"
     # Older ansible.posix has no exclude=; rsync_opts is always supported.
     rsync_opts: "{{ insightsdsa_sync_excludes | map('regex_replace', '^', '--exclude=') | list }}"
