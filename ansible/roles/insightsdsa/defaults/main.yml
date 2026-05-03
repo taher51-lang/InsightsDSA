@@ -19,6 +19,9 @@ insightsdsa_uwsgi_socket_group: www-data
 insightsdsa_apt_install_missing_nginx_stack: true
 insightsdsa_apt_update_cache_when_installing: false
 
+# nginx server_name blocks (inventory sets dev/prod hostnames).
+insightsdsa_server_name: "_"
+
 # TLS: none (HTTP only) | selfsigned (OpenSSL, dev) | letsencrypt (production).
 insightsdsa_tls_mode: none
 insightsdsa_tls_selfsigned_days: 825
