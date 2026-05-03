@@ -6,6 +6,14 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Set Redis TCP port (matches InsightsDSA REDIS_PORT)
+  ansible.builtin.lineinfile:
+    path: /etc/redis/redis.conf
+    regexp: '^#\s*port\s+|^port\s+'
+    line: "port {{ redis_listen_port }}"
+    backup: true
+  notify: Restart redis
+
 - name: Bind Redis to localhost only
   ansible.builtin.lineinfile:
     path: /etc/redis/redis.conf

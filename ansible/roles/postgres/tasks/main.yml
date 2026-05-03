@@ -6,6 +6,35 @@
     update_cache: true
     cache_valid_time: 3600
 
+- name: Locate main cluster postgresql.conf (Debian/Ubuntu layout)
+  ansible.builtin.shell:
+    cmd: |
+      set -e
+      for f in /etc/postgresql/*/main/postgresql.conf; do
+        if [ -f "$f" ]; then
+          printf '%s\n' "$f"
+          exit 0
+        fi
+      done
+      exit 1
+    executable: /bin/bash
+  register: postgres_discover_conf
+  changed_when: false
+
+- name: Configure PostgreSQL listen TCP port (matches InsightsDSA DATABASE_URL)
+  ansible.builtin.lineinfile:
+    path: "{{ postgres_discover_conf.stdout | trim }}"
+    regexp: '^#?\s*port\s*='
+    line: "port = {{ postgres_listen_port }}"
+    backup: true
+  register: postgres_port_conf
+
+- name: Restart PostgreSQL to apply listen port
+  ansible.builtin.service:
+    name: postgresql
+    state: restarted
+  when: postgres_port_conf is changed
+
 - name: Ensure PostgreSQL service is enabled and started
   ansible.builtin.service:
     name: postgresql

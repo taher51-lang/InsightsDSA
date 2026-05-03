@@ -148,6 +148,7 @@
     name: "{{ insightsdsa_db_user }}"
     password: "{{ insightsdsa_db_password }}"
     role_attr_flags: LOGIN
+    login_port: "{{ insightsdsa_postgres_port | int }}"
   when: insightsdsa_manage_postgres | bool
 
 - name: Create PostgreSQL application database
@@ -157,6 +158,7 @@
     owner: "{{ insightsdsa_db_user }}"
     encoding: UTF-8
     template: template0
+    login_port: "{{ insightsdsa_postgres_port | int }}"
   when: insightsdsa_manage_postgres | bool
 
 - name: Run database schema (SQLAlchemy create_all + column guards)

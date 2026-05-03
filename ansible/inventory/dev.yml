@@ -16,5 +16,8 @@ all:
     insightsdsa_tls_mode: selfsigned
     # Required: must match SAN on the certificate and how users reach the app.
     insightsdsa_server_name: dev.insightsdsa.local
+    # Avoid clashing with GitLab or other local services on default ports.
+    insightsdsa_postgres_port: 5433
+    insightsdsa_redis_port: 6380
     insightsdsa_install_postgres: true
     insightsdsa_install_redis: true

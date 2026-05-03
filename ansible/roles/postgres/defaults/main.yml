@@ -4,3 +4,6 @@ postgres_apt_packages:
   - postgresql-contrib
   - libpq-dev
   - python3-psycopg2
+
+# TCP port Postgres listens on; keep in sync with inventory insightsdsa_postgres_port.
+postgres_listen_port: "{{ insightsdsa_postgres_port | default(5432) | int }}"
