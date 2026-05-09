@@ -9,6 +9,7 @@ from typing import TypedDict, Annotated
 from langgraph.graph.message import add_messages, BaseMessage
 from pydantic import Field
 from psycopg_pool import ConnectionPool
+from psycopg.rows import dict_row
 from langgraph.checkpoint.postgres import PostgresSaver
 
 from .config import settings
@@ -24,7 +25,7 @@ def _get_pool():
             conninfo=settings.checkpoint_postgres_uri,
             min_size=1,
             max_size=4,
-            kwargs={"autocommit": False, "connect_timeout": 10},
+            kwargs={"autocommit": True, "row_factory": dict_row, "connect_timeout": 10},
         )
     return _pool
 
